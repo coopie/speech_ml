@@ -20,6 +20,7 @@ A repo to test out detecting stress/emotional state of people in recorded voice
 TODO:
 
 * make init script nicer for someone else to use(in the far future)
+* make the fpython stuff nicer to use (currently in the bin folder of env, setup needs to add it to the folder)
 
 ### Dependencies
 

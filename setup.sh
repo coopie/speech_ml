@@ -1,5 +1,7 @@
 #bin/sh
 
+# The setup for getting the copora
+
 CORPORA_DIR=corpora
 VOCALIZATIONS_DIR=Vocalizations
 

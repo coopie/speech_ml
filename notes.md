@@ -1,11 +1,13 @@
 # Notes
 
+## The Non-vocal baseline:
+* 2 methods - spectrograms and raw waveform.
+
 ## Datasets:
 
 * [RML emotion database](http://www.rml.ryerson.ca/rml-emotion-database.html): promising, although maybe a bit small, could go well with another corpus.
 
 * [Montreal affected voices corpus](http://www.ncbi.nlm.nih.gov/pubmed/18522064): emotional vocalizations (laughing, crying etc.)
-
 
 #### The ones below I looked at, but were not useful
 
