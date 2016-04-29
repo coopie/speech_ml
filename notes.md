@@ -3,11 +3,34 @@
 ## The Non-vocal baseline:
 * 2 methods - spectrograms and raw waveform.
 
+##  File Naming
+
+files from the corpora will be changed to new names:
+
+```
+<subjectid>_<emotion>_<action>_<repitionid>
+
+```
+
+where:
+* `subjectid` can be any string.
+* `emotion` is any from `{neutral, calm, happy, sad, angry, fear, disgust, surprised}`
+* `action` is a string representing what the subject is saying
+* `repitionid` (optional) should be a number signifying if the subject has more than one recording of a specific emotion.
+
 ## Datasets:
 
 * [RML emotion database](http://www.rml.ryerson.ca/rml-emotion-database.html): promising, although maybe a bit small, could go well with another corpus.
 
 * [Montreal affected voices corpus](http://www.ncbi.nlm.nih.gov/pubmed/18522064): emotional vocalizations (laughing, crying etc.)
+
+* [Italian affected voices corpus](http://www.lrec-conf.org/proceedings/lrec2014/pdf/591_Paper.pdf)
+
+* [Toronto Emotional Speech Set](https://tspace.library.utoronto.ca/handle/1807/24487/browse?type=title&submit_browse=Title): USE LATER
+
+* [Berlin Emotional Speech Database](http://emotion-research.net/Members/AstridPaeschke/EmoDB): USE LATER
+
+* [RAVDESS](http://smartlaboratory.org/ravdess/): Looks very Promising
 
 #### The ones below I looked at, but were not useful
 
