@@ -3,13 +3,12 @@ import sys
 import os
 
 DATA_DIR = "corpora/RAVDESS"
+
 def main():
     for filename in os.listdir(DATA_DIR):
         if filename.endswith('.wav'):
             print filename
-            os.rename(DATA_DIR + '/' + filename, DATA_DIR + '/' + get_new_name_RAVDESS(filename))
-
-
+            os.rename(DATA_DIR + '/' + filename, DATA_DIR + '/' + get_new_name_RAVDESS(filename) + '.wav')
 
 
 EMOTIONS = [

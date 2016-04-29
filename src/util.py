@@ -1,4 +1,5 @@
 import os
+import errno
 
 # echoes the behaviour of mkdir -p
 # from http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
