@@ -11,3 +11,25 @@ def mkdir_p(path):
             pass
         else:
             raise
+
+EMOTIONS = [
+    "neutral",
+    "calm",
+    "happy",
+    "sad",
+    "angry",
+    "fearful",
+    "disgust",
+    "surprised"
+]
+
+EMOTION_NUMBERS = {
+    'neutral': 0,
+    'calm': 1,
+    'happy': 2,
+    'sad': 3,
+    'angry': 4,
+    'fearful': 5,
+    'disgust': 6,
+    'surprised': 7,
+}

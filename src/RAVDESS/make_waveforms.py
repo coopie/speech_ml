@@ -24,7 +24,7 @@ for wavfile in wavfiles:
     print 'extracting ' + wavfile
     waveform = read(CORPORA_DIR + '/' + wavfile)[1]
 
-    dset = f.create_dataset(wavfile, data=waveform)
+    dset = f.create_dataset(wavfile.split('.')[0], data=waveform)
 
 f.close()
 print 'COMPLETED WAVEFORM EXTRACTION'

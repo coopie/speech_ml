@@ -1,7 +1,7 @@
 # Notes
 
 ## The Non-vocal baseline:
-* 2 methods - spectrograms and raw waveform.
+* 2 methods - spectrograms and raw waveform. 
 
 ##  File Naming
 
@@ -14,7 +14,7 @@ files from the corpora will be changed to new names:
 
 where:
 * `subjectid` can be any string.
-* `emotion` is any from `{neutral, calm, happy, sad, angry, fear, disgust, surprised}`
+* `emotion` is any from `{neutral, calm, happy, sad, angry, fearful, disgust, surprised}`
 * `action` is a string representing what the subject is saying
 * `repitionid` (optional) should be a number signifying if the subject has more than one recording of a specific emotion.
 
