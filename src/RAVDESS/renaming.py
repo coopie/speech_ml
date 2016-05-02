@@ -34,17 +34,5 @@ def get_new_name_RAVDESS(filename):
         str(flags[-2])
     ))
 
-
-class TestRenaming(unittest.TestCase):
-
-    def test_renaming(self):
-        self.assertEqual(
-            get_new_name_RAVDESS("03-02-03-02-02-322"),
-            "RAVDESS322_happy_dog_2"
-        )
-
 if __name__ == '__main__' and len(sys.argv) > 1:
-    sys.argv = sys.argv[1:]
-    unittest.main()
-else:
     main()
