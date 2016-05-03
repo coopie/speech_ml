@@ -24,6 +24,4 @@ TODO:
 
 * make init script nicer for someone else to use(in the far future)
 * make the fpython stuff nicer to use (currently in the bin folder of env, setup needs to add it to the folder)
-* Get test Dependencies nicer (no real way of testing with scientific python packages with travis at the moment, unless docker is used)
-
-### Dependencies
+* Dockerise so others can easily develop (no real way of testing with scientific python packages with travis at the moment, unless docker is used)

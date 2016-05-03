@@ -1,5 +1,5 @@
 import unittest
-import renaming
+from RAVDESS import renaming
 
 class TestRenaming(unittest.TestCase):
 
