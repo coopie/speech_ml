@@ -1,5 +1,6 @@
 import os
 import errno
+import yaml
 
 # echoes the behaviour of mkdir -p
 # from http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
@@ -12,6 +13,7 @@ def mkdir_p(path):
         else:
             raise
 
+
 EMOTIONS = [
     "neutral",
     "calm",
@@ -23,6 +25,7 @@ EMOTIONS = [
     "surprised"
 ]
 
+
 EMOTION_NUMBERS = {
     'neutral': 0,
     'calm': 1,
@@ -33,3 +36,16 @@ EMOTION_NUMBERS = {
     'disgust': 6,
     'surprised': 7,
 }
+
+def ttv_yaml_to_dict(path):
+    with open(path, 'r') as f:
+        return yaml.load(f.read())
+
+
+
+def get_emotion_from_filename(filename):
+    return filename.split('/')[-1].split('.')[0].split('_')[1]
+
+
+def get_emotion_number_from_filename(filename):
+    return EMOTION_NUMBERS[filename.split('/')[-1].split('.')[0].split('_')[1]]

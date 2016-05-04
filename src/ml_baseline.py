@@ -40,4 +40,4 @@ model.add(Dense(1, activation="sigmoid"))
 
 model.compile(loss="mean_absolute_error", optimizer="rmsprop")
 
-model.fit(inputs, outputs, nb_epoch=10000)
+# model.fit(inputs, outputs, nb_epoch=10000)
