@@ -5,13 +5,21 @@ import numpy as np
 import h5py
 import os
 from scipy.io.wavfile import read
-from util import mkdir_p, get_emotion_number_from_filename
+from util import mkdir_p, get_emotion_number_from_filename, EMOTIONS
 
 def read_wav_file(path_to_wav_file):
     return read(path_to_wav_file)[1]
 
+
 def noop():
     return x
+
+def filename_to_category_vector(filename):
+    emotion_number = get_emotion_number_from_filename(filename)
+    zeros = np.zeros(len(EMOTIONS), dtype='int16')
+    zeros[emotion_number] = 1
+    return zeros
+
 
 def ttv_to_waveforms(ttv_info, normaliser=lambda x: x, get_waveform_data=read_wav_file):
     """
@@ -21,7 +29,7 @@ def ttv_to_waveforms(ttv_info, normaliser=lambda x: x, get_waveform_data=read_wa
     wavfiles = map(lambda info_set: map(get_waveform_data, info_set), ttv_info)
     wavfiles = map(lambda info_set: map(normaliser, info_set), wavfiles)
 
-    emotions = map(lambda info_set: map(get_emotion_number_from_filename, info_set), ttv_info)
+    emotions = map(lambda info_set: map(filename_to_category_vector, info_set), ttv_info)
 
     return (
     {'x': np.array(wavfiles[0]), 'y': np.array(emotions[0])},

@@ -40,8 +40,7 @@ EMOTION_NUMBERS = {
 def ttv_yaml_to_dict(path):
     with open(path, 'r') as f:
         return yaml.load(f.read())
-
-
+        
 
 def get_emotion_from_filename(filename):
     return filename.split('/')[-1].split('.')[0].split('_')[1]
