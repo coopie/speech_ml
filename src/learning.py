@@ -74,7 +74,7 @@ def train(
             train_data['y'],
             batch_size=batch_size,
             nb_epoch=number_of_epochs,
-            verbose=1,
+            verbose=verbosity,
             validation_data=(validation_data['x'],
             validation_data['y']),
             callbacks=callbacks
@@ -127,7 +127,6 @@ def train(
         with open(path_to_results + '/' + experiment_name + '_stats.yaml', 'w') as f:
             yaml.dump(experiment_data, f, default_flow_style=False)
 
-        # save_experiment_results(model, perf_metrics, path_to_results + '/' + experiment_name)
         log('EXPERIEMENT ENDED', 1)
 
     if to_terminal:

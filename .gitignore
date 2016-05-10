@@ -2,6 +2,8 @@
 corpora/
 data/
 
+*.cache.hdf5
+
 # standard github python gitignore:
 # Byte-compiled / optimized / DLL files
 __pycache__/

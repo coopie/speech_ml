@@ -4,13 +4,25 @@ import sys
 import os
 import yaml
 import random
+import numpy as np
 
 DEFAULT_TTV_RATIO = (20, 60, 20)
 
 def main():
     make_ttv_yaml(sys.argv[1:-1], sys.argv[-1])
 
+
 def make_ttv_yaml(corpora, path_to_ttv_file, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
+    """ Creates a test, train, validation from the corpora given and saves it as a YAML filename.
+        Each set will be subject independent, meaning that no one subject can have data in more than one
+        set
+
+    # Arguments;
+        corpora: a list of the paths to corpora used (these have to be formatted accoring to notes.md)
+        path_to_ttv_file: the path to where the YAML file be be saved
+        ttv_ratio: a tuple (e.g. (1,4,4) of the relative sizoe of each set)
+        deterministic: whether or not to shuffle the resources around when making the set
+    """
     dataset = get_dataset(corpora)
     test, train, validation = make_ttv(dataset, ttv_ratio=ttv_ratio, deterministic=deterministic)
 

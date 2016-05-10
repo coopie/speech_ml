@@ -1,5 +1,5 @@
 #!/bin/bash
-# in order to run matplotlib, this needs to be used instead of 'pytho'
+# in order to run matplotlib, this needs to be used instead of 'python'
 
 # what real Python executable to use
 PYVER=2.7

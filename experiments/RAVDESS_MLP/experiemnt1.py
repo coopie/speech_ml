@@ -9,14 +9,17 @@ from keras.models import Sequential
 from keras.layers.core import Dense
 from keras.layers import Dropout
 import numpy as np
+import math
 
 SAMPLE_RATE = 48000
 TIME_WINDOW = 3
 
+THIS_DIR = 'experiments/RAVDESS_MLP/'
+
 def main():
-    ttv_info = ttv_yaml_to_dict('experiments/RAVDESS_MLP/ttv1.yaml')
+    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv1.yaml')
     print "GETTING WAVEFORM DATA..."
-    ttv_data = ttv_to_waveforms(ttv_info, normaliser=normalise)
+    ttv_data = ttv_to_waveforms(ttv_info, normalise=normalise, cache=THIS_DIR + 'ttv1.cache.hdf5')
 
     early_stopping = EarlyStopping(monitor='val_acc', patience=3)
     learning.train(
@@ -51,7 +54,13 @@ def make_mlp_model():
 
 
 def normalise(datum):
-    return datum[:SAMPLE_RATE*TIME_WINDOW]
+    return map(squash, datum[:SAMPLE_RATE*TIME_WINDOW])
+# def normalise(datum):
+#     return datum[:SAMPLE_RATE*TIME_WINDOW]
+
+def squash(x):
+    # no academia backing this up - just a thought
+    return math.log(abs(x) + 1, 30)
 
 
 if __name__ == '__main__':

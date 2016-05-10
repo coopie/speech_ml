@@ -1,24 +1,44 @@
 # Notes
 
+TODO:
+
+### NOW
+* make init script nicer for someone else to use
+* all files go into a folder - with naming clash stuff
+* caching and loading bar for getting ttv data
+* tests for learning.py - v important
+* cache the ttv data_sets (lib for doing this)
+* Actual experiments - normalising waveform intensity, more variation on the MLP experiment
+
+
+### LATER
+* produce a graph at the end for the test data
+* * Dockerise so others can easily develop (no real way of testing with scientific python packages with travis at the moment, unless docker is used)
+* Turn TODO list into github issues
+
+### Would be Cool
+* make the fpython stuff nicer to use (currently in the bin folder of env, setup needs to add it to the folder)
+* think of ways of making the experiments even more lightweight
+
+
 ## The Non-vocal baseline:
-* 2 methods - spectrograms and raw waveform. 
+* 2 methods - spectrograms and raw waveform.
 
 ##  File Naming
 
-files from the corpora will be changed to new names:
+files from new corpora will be changed to new names:
 
 ```
 <subjectid>_<emotion>_<action>_<repitionid>
 
 ```
-
 where:
-* `subjectid` can be any string.
+* `subjectid` can be any string, so long as it is unique from ALL other files (incl. ones from other corpora).
 * `emotion` is any from `{neutral, calm, happy, sad, angry, fearful, disgust, surprised}`
 * `action` is a string representing what the subject is saying
 * `repitionid` (optional) should be a number signifying if the subject has more than one recording of a specific emotion.
 
-## Datasets:
+## Datasets That Look Useful:
 
 * [RML emotion database](http://www.rml.ryerson.ca/rml-emotion-database.html): promising, although maybe a bit small, could go well with another corpus.
 
@@ -26,11 +46,11 @@ where:
 
 * [Italian affected voices corpus](http://www.lrec-conf.org/proceedings/lrec2014/pdf/591_Paper.pdf)
 
-* [Toronto Emotional Speech Set](https://tspace.library.utoronto.ca/handle/1807/24487/browse?type=title&submit_browse=Title): USE LATER
+* [Toronto Emotional Speech Set](https://tspace.library.utoronto.ca/handle/1807/24487/browse?type=title&submit_browse=Title):
 
-* [Berlin Emotional Speech Database](http://emotion-research.net/Members/AstridPaeschke/EmoDB): USE LATER
+* [Berlin Emotional Speech Database](http://emotion-research.net/Members/AstridPaeschke/EmoDB):
 
-* [RAVDESS](http://smartlaboratory.org/ravdess/): Looks very Promising
+* [RAVDESS](http://smartlaboratory.org/ravdess/): Currently in use
 
 #### The ones below I looked at, but were not useful
 
