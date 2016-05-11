@@ -37,6 +37,7 @@ def train(
         path_to_results='',
         end_training=keypress_to_quit,
         early_stopping=None,
+        generate_callbacks=lambda: [],
         to_terminal=False,
         verbosity=1,
         number_of_epochs=100,
@@ -46,7 +47,7 @@ def train(
     """
     TODO: write this
     """
-    callbacks = []
+    callbacks = generate_callbacks()
     model_perf_tracker = None
     if not dry_run:
         model_perf_tracker = CompleteModelCheckpoint(
@@ -56,8 +57,6 @@ def train(
         )
         callbacks.append(model_perf_tracker)
 
-    if early_stopping is not None:
-        callbacks.append(early_stopping)
 
     def log(message, level):
         if verbosity >= level:
@@ -67,7 +66,7 @@ def train(
     test_data, train_data, validation_data = ttv
 
     while not end_training():
-        model = generate_model()
+        model = generate_model(verbosity = verbosity)
 
         history = model.fit(
             train_data['x'],

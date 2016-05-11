@@ -3,17 +3,15 @@
 TODO:
 
 ### NOW
+* migration to python3
 * make init script nicer for someone else to use
-* all files go into a folder - with naming clash stuff
-* caching and loading bar for getting ttv data
 * tests for learning.py - v important
-* cache the ttv data_sets (lib for doing this)
 * Actual experiments - normalising waveform intensity, more variation on the MLP experiment
 
 
 ### LATER
 * produce a graph at the end for the test data
-* * Dockerise so others can easily develop (no real way of testing with scientific python packages with travis at the moment, unless docker is used)
+* Dockerise so others can easily develop (no real way of testing with scientific python packages with travis at the moment, unless docker is used)
 * Turn TODO list into github issues
 
 ### Would be Cool
