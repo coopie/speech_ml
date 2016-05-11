@@ -7,7 +7,7 @@ DATA_DIR = "corpora/RAVDESS"
 def main():
     for filename in os.listdir(DATA_DIR):
         if filename.endswith('.wav'):
-            print filename
+            print(filename)
             os.rename(DATA_DIR + '/' + filename, DATA_DIR + '/' + get_new_name_RAVDESS(filename) + '.wav')
 
 
@@ -26,7 +26,7 @@ EMOTIONS = [
 to_emotion = lambda x: EMOTIONS[x]
 
 def get_new_name_RAVDESS(filename):
-    flags = map(lambda x: int(x), (filename.split('.')[0]).split('-'))
+    flags = list(map(lambda x: int(x), (filename.split('.')[0]).split('-')))
     return  '_'.join((
         "RAVDESS" + str(flags[-1]),
         to_emotion(flags[2]) ,

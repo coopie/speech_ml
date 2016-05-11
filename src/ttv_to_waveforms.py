@@ -26,7 +26,7 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
 
     def log(msg, level):
         if level <= verbosity:
-            print msg
+            print(msg)
 
     if cache is not None and os.path.exists(cache):
         log('FOUND CACHED TTV DATA', 1)
@@ -36,7 +36,7 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
     ttv_info = (ttv_info['test'], ttv_info['train'], ttv_info['validation'])
 
 
-    NUM_RESOURCES = sum(map(lambda x: len(x), ttv_info))
+    NUM_RESOURCES = sum(list(map(lambda x: len(x), ttv_info)))
     pb = Progbar(NUM_RESOURCES, verbose=verbosity)
 
     def get_data(path):
@@ -46,9 +46,11 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
         pb.add(1)
         return wave_data
 
-    wavfiles = map(lambda info_set: map(get_data, info_set), ttv_info)
+    # wavfiles = map(lambda info_set: map(get_data, info_set), ttv_info)
+    wavfiles = map_for_each_set(get_data, ttv_info)
 
-    emotions = map(lambda info_set: map(filename_to_category_vector, info_set), ttv_info)
+    # emotions = map(lambda info_set: map(filename_to_category_vector, info_set), ttv_info)
+    emotions = map_for_each_set(filename_to_category_vector, ttv_info)
 
     ttv_data = (
     {'x': np.array(wavfiles[0]), 'y': np.array(emotions[0])},
@@ -61,3 +63,6 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
         log('CACHING TTV DATA FOR LATER USE', 1)
 
     return ttv_data
+
+def map_for_each_set(func, ttv):
+    return [list(map(func, s)) for s in ttv]
