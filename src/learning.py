@@ -11,6 +11,7 @@ import os
 from keras.callbacks import ModelCheckpoint, Callback
 from keras.models import model_from_yaml
 import numpy as np
+from util import mkdir_p, save_to_yaml_file, ttv_yaml_to_dict
 
 
 kb = None
@@ -29,6 +30,8 @@ def keypress_to_quit():
         except UnicodeDecodeError:
             pass
 
+def empty_list():
+    return []
 
 def train(
         generate_model,
@@ -37,7 +40,7 @@ def train(
         path_to_results='',
         end_training=keypress_to_quit,
         early_stopping=None,
-        generate_callbacks=lambda: [],
+        generate_callbacks=empty_list,
         to_terminal=False,
         verbosity=1,
         number_of_epochs=100,
@@ -47,7 +50,6 @@ def train(
     """
     TODO: write this
     """
-    callbacks = generate_callbacks()
     model_perf_tracker = None
     if not dry_run:
         model_perf_tracker = CompleteModelCheckpoint(
@@ -55,18 +57,20 @@ def train(
             monitor='val_acc',
             save_best_only=True
         )
-        callbacks.append(model_perf_tracker)
-
 
     def log(message, level):
         if verbosity >= level:
-            print message
+            print(message)
 
     model = None
     test_data, train_data, validation_data = ttv
 
     while not end_training():
-        model = generate_model(verbosity = verbosity)
+        model, compile_args = generate_model(verbosity = verbosity)
+
+        callbacks = generate_callbacks()
+        if not dry_run:
+            callbacks.append(model_perf_tracker)
 
         history = model.fit(
             train_data['x'],
@@ -79,6 +83,8 @@ def train(
             callbacks=callbacks
         )
         log("END OF EPOCHS: BEST VAIDATION ACCURACY: {0:4f}".format(max(history.history['val_acc'])), 1)
+        # code.interact(local=locals())
+        del model
 
     log('TRAINING ENDED, GETTING TEST SET RESULTS', 1)
 
@@ -86,51 +92,82 @@ def train(
     if not dry_run:
 
         path_to_best = model_perf_tracker.path_to_best
-        best_model_config = open(path_to_best + '.yaml').read()
+        log('LOADING BEST MODEL', 1)
+        best_model = load_model(path_to_best)
+        log('LOADED', 1)
 
-        if best_model_config == model.to_yaml():
-            log('BEST MODEL IS SAME CONIFIG AS CURRENT ONE, SAVING TIME, USING SAME MODEL', 1)
-            best_model = model
-            model.load_weights(path_to_best + '.hdf5')
-        else:
-            log('BEST MODEL IS NOT SAME CONIFIG AS CURRENT ONE, LOADING NEW MODEL...', 1)
-            # del model
-            best_model = model_from_yaml(best_model_config)
-            best_model.load_weights(path_to_best + '.hdf5')
-            log('LOADED', 1)
-
-        experiment_data = {}
-
-        def get_perf(set_and_name):
-            data, name = set_and_name
-            perf_data = {}
-            metrics = model.evaluate(data['x'], data['y'], batch_size=batch_size)
-            metrics_names = model.metrics_names
-
-            for name, metric in zip(metrics_names, metrics):
-                log((name, name, metric), 1)
-                perf_data[name] = float(metric)
-            return perf_data
-
-        test_perf, train_perf, validation_perf = map(
-            get_perf,
-            zip(ttv, ['test', 'train', 'validation'])
+        experiment_data = evaluate_model_on_ttv(
+            best_model,
+            ttv,
+            batch_size,
+            path=path_to_best,
+            verbosity=1
         )
-
-        experiment_data['metrics'] = {
-            'test': test_perf,
-            'train': train_perf,
-            'validation': validation_perf
-        }
-
-        with open(path_to_results + '/' + experiment_name + '_stats.yaml', 'w') as f:
-            yaml.dump(experiment_data, f, default_flow_style=False)
-
         log('EXPERIEMENT ENDED', 1)
 
     if to_terminal:
         os.system('reset')
         code.interact(local=locals())
+
+
+def load_model(path_to_model_dir):
+    model = model_from_yaml(open(path_to_model_dir + '/config.yaml').read())
+    model.load_weights(path_to_model_dir + '/weights.hdf5')
+    compile_args = ttv_yaml_to_dict(path_to_model_dir + '/compile_args.yaml')
+    model.compile(**compile_args)
+    return model
+
+
+def save_model(path, model):
+    metrics = model.metrics_names.copy()
+    metrics.remove('loss')
+    compile_args = {
+        'loss': model.loss,
+        'metrics': metrics,
+        'optimizer': model.optimizer.get_config()['name']
+    }
+    mkdir_p(path)
+    model.save_weights(path + '/weights.hdf5', overwrite=True)
+    save_to_file(path + '/config.yaml', model.to_yaml())
+    save_to_yaml_file(path + '/compile_args.yaml', compile_args)
+
+
+def evaluate_model_on_ttv(model, ttv_data, batch_size, path=False, verbosity=0):
+
+    def log(message, level):
+        if verbosity >= level:
+            print(message)
+
+    def get_perf(set_and_name):
+        # Evaluates a dataset using the metrics that the model uses
+        data, name = set_and_name
+        perf_data = {}
+        metrics = model.evaluate(data['x'], data['y'], batch_size=batch_size)
+        metrics_names = model.metrics_names
+
+        for metric_name, metric in zip(metrics_names, metrics):
+            log((name, metric_name, metric), 1)
+            perf_data[name] = float(metric)
+        return perf_data
+
+    test_perf, train_perf, validation_perf = list(map(
+        get_perf,
+        list(zip(ttv_data, ['test', 'train', 'validation']))
+    ))
+    experiment_data = {}
+    experiment_data['model'] = path
+    experiment_data['metrics'] = {
+        'test': test_perf,
+        'train': train_perf,
+        'validation': validation_perf
+    }
+    experiment_data['batch_size'] = batch_size
+
+    if path is not None:
+        with open(path + '/stats.yaml', 'w') as f:
+            yaml.dump(experiment_data, f, default_flow_style=False)
+
+    return experiment_data
 
 
 def save_experiment_results(model, results,  path):
@@ -217,8 +254,7 @@ class CompleteModelCheckpoint(Callback):
                                  current, filepath))
                     self.best = current
                     self.path_to_best = filepath
-                    self.model.save_weights(filepath + '.hdf5', overwrite=True)
-                    save_to_file(filepath + '.yaml', self.model.to_yaml())
+                    save_model(filepath, self.model)
                 else:
                     if self.verbose > 0:
                         print('Epoch %05d: %s did not improve' %
@@ -226,8 +262,7 @@ class CompleteModelCheckpoint(Callback):
         else:
             if self.verbose > 0:
                 print('Epoch %05d: saving model to %s' % (epoch, filepath))
-            self.model.save_weights(filepath + '.hdf5', overwrite=True)
-            save_to_file(filepath + '.yaml', self.model.to_yaml())
+            save_model(filepath, self.model)
 
 
 def save_to_file(filepath, string):

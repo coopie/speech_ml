@@ -9,7 +9,7 @@ import h5py
 def mkdir_p(path):
     try:
         os.makedirs(path)
-    except OSError as exc:  
+    except OSError as exc:
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
         else:
@@ -44,12 +44,18 @@ def ttv_yaml_to_dict(path):
         return yaml.load(f.read())
 
 
+def save_to_yaml_file(filepath, o):
+    with open(filepath, 'w') as f:
+        yaml.dump(o, f, default_flow_style=False)
+
+
 def get_emotion_from_filename(filename):
     return filename.split('/')[-1].split('.')[0].split('_')[1]
 
 
 def get_emotion_number_from_filename(filename):
     return EMOTION_NUMBERS[filename.split('/')[-1].split('.')[0].split('_')[1]]
+
 
 def get_cached_ttv_data(path):
     f = h5py.File(path, 'r')
@@ -68,6 +74,7 @@ def get_cached_ttv_data(path):
         'y': f['validation']['y'][:],
     }
     )
+
 
 def cache_ttv_data(path, ttv_data):
     test_data, train_data, validation_data = ttv_data

@@ -43,7 +43,9 @@ def make_ttv(dataset, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
 
     total_ttv = sum(ttv_ratio)
 
-    subjects = dataset.keys()
+    subjects = list(dataset.keys())
+    print(subjects)
+
     if not deterministic:
         random.shuffle(subjects)
 
@@ -55,10 +57,10 @@ def make_ttv(dataset, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
 
 
     def get_filenames(subjects):
-        return sum(map(lambda x: dataset[x], subjects), [])
+        return sum(list(map(lambda x: dataset[x], subjects)), [])
 
     test_data, train_data, validation_data = \
-        map(get_filenames, (test_subjects, train_subjects, validation_subjects))
+        list(map(get_filenames, (test_subjects, train_subjects, validation_subjects)))
 
     return (test_data, train_data, validation_data)
 
@@ -76,7 +78,7 @@ def get_dataset(corpora):
 
     wav_files_in_corpora = filter(lambda x: x.endswith('.wav'),
         sum(
-            [map(lambda x: corpus + '/' + x, os.listdir(corpus)) for corpus in corpora],
+            [list(map(lambda x: corpus + '/' + x, os.listdir(corpus))) for corpus in corpora],
             []
         ),
     )

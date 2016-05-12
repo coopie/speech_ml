@@ -1,8 +1,13 @@
 # Notes
 
+## for windows:
+1. http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy
+*  get the scipy whl and numpy blas whl whl
+
 TODO:
 
 ### NOW
+* more data (python browser thingy)
 * migration to python3
 * make init script nicer for someone else to use
 * tests for learning.py - v important
@@ -10,9 +15,12 @@ TODO:
 
 
 ### LATER
+* clarify naming of ttv_data, ttv_info, ttv
 * produce a graph at the end for the test data
 * Dockerise so others can easily develop (no real way of testing with scientific python packages with travis at the moment, unless docker is used)
 * Turn TODO list into github issues
+* deleting model after each iteration
+* comments in yaml?
 
 ### Would be Cool
 * make the fpython stuff nicer to use (currently in the bin folder of env, setup needs to add it to the folder)
