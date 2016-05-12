@@ -19,7 +19,7 @@ THIS_DIR = 'experiments/RAVDESS_MLP/'
 
 def main():
     ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv1.yaml')
-    print "GETTING WAVEFORM DATA..."
+    print("GETTING WAVEFORM DATA...")
     ttv_data = ttv_to_waveforms(ttv_info, normalise=normalise, cache=THIS_DIR + 'ttv1.cache.hdf5')
 
     # early_stopping = EarlyStopping(monitor='val_acc', patience=3)
@@ -41,13 +41,20 @@ def generate_callbacks():
     ]
 
 def make_mlp_model(**kwargs):
+
+    compile_args = {
+        'loss': "categorical_crossentropy",
+        'optimizer': "RMSprop",
+        'metrics': ['accuracy']
+    }
+
     model = Sequential()
 
     top_layer = random.randint(512, 1024)
-    second_layer = random.randint(4, 20) ** 2
+    second_layer = random.randint(4, 12) ** 2
 
     if kwargs['verbosity'] >= 1:
-        print 'top layer: ', top_layer, 'second layer: ', second_layer
+        print('top layer: ', top_layer, 'second layer: ', second_layer)
 
     model.add(Dense(top_layer, activation="tanh", init='uniform', input_shape=(SAMPLE_RATE*TIME_WINDOW,)))
     model.add(Dropout(0.5))
@@ -58,15 +65,13 @@ def make_mlp_model(**kwargs):
     model.add(Dense(len(EMOTIONS), activation="softmax"))
 
     model.compile(
-        loss="categorical_crossentropy",
-        optimizer="rmsprop",
-        metrics=['accuracy']
+        **compile_args
     )
-    return model
+    return model, compile_args
 
 
 def normalise(datum):
-    return map(squash, datum[:SAMPLE_RATE*TIME_WINDOW])
+    return list(map(squash, datum[:SAMPLE_RATE*TIME_WINDOW]))
 # def normalise(datum):
 #     return datum[:SAMPLE_RATE*TIME_WINDOW]
 
