@@ -22,15 +22,13 @@ def main():
     print("GETTING WAVEFORM DATA...")
     ttv_data = ttv_to_waveforms(ttv_info, normalise=normalise, cache=THIS_DIR + 'ttv1.cache.hdf5')
 
-    # early_stopping = EarlyStopping(monitor='val_acc', patience=3)
     learning.train(
         make_mlp_model,
         ttv_data,
         'experiment1',
         path_to_results='experiments/RAVDESS_MLP',
-        # early_stopping=early_stopping,
         generate_callbacks=generate_callbacks,
-        number_of_epochs=20,
+        number_of_epochs=2,
         # dry_run=True,
         to_terminal=True
     )

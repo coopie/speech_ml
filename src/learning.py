@@ -10,9 +10,11 @@ import yaml
 import os
 from keras.callbacks import ModelCheckpoint, Callback
 from keras.models import model_from_yaml
+from keras.optimizers import get as get_optimizer
+
 import numpy as np
 from util import mkdir_p, save_to_yaml_file, ttv_yaml_to_dict
-
+import warnings
 
 kb = None
 
@@ -50,6 +52,15 @@ def train(
     """
     TODO: write this
     """
+    callbacks = generate_callbacks()
+    def log(message, level):
+        if verbosity >= level:
+            print(message)
+
+    if dry_run is True and to_terminal is True:
+        warnings.warn('Warning: cannot finish to terminal if you are\'t saving models')
+        to_terminal = False
+
     model_perf_tracker = None
     if not dry_run:
         model_perf_tracker = CompleteModelCheckpoint(
@@ -57,10 +68,6 @@ def train(
             monitor='val_acc',
             save_best_only=True
         )
-
-    def log(message, level):
-        if verbosity >= level:
-            print(message)
 
     model = None
     test_data, train_data, validation_data = ttv
@@ -114,7 +121,15 @@ def load_model(path_to_model_dir):
     model = model_from_yaml(open(path_to_model_dir + '/config.yaml').read())
     model.load_weights(path_to_model_dir + '/weights.hdf5')
     compile_args = ttv_yaml_to_dict(path_to_model_dir + '/compile_args.yaml')
-    model.compile(**compile_args)
+
+    optimizer = compile_args.pop('optimizer')
+    if isinstance(optimizer, dict):
+        name = optimizer.pop('name')
+        optimizer = get_optimizer(name, optimizer)
+    else:
+        optimizer = get_optimizer(optimizer)
+
+    model.compile(optimizer=optimizer, **compile_args)
     return model
 
 
@@ -124,7 +139,7 @@ def save_model(path, model):
     compile_args = {
         'loss': model.loss,
         'metrics': metrics,
-        'optimizer': model.optimizer.get_config()['name']
+        'optimizer': model.optimizer.get_config()
     }
     mkdir_p(path)
     model.save_weights(path + '/weights.hdf5', overwrite=True)

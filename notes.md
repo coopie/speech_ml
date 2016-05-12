@@ -4,6 +4,14 @@
 1. http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy
 *  get the scipy whl and numpy blas whl whl
 
+## Spectrograms
+* https://papers.nips.cc/paper/3674-unsupervised-feature-learning-for-audio-classification-using-convolutional-deep-belief-networks.pdf
+  * 20ms window size, 10ms overlap
+  * PCA whitening, (80 components)
+
+* http://research.microsoft.com/pubs/230136/IS140441.PDF
+
+
 TODO:
 
 ### NOW
