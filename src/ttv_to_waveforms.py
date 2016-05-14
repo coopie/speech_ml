@@ -1,37 +1,31 @@
 # Provides methods to get the raw waveforms from a TTV.yaml and normalise them
-# TODO: test this
 
 import numpy as np
 import h5py
 import os
 from scipy.io.wavfile import read
-from util import mkdir_p, get_emotion_number_from_filename, EMOTIONS, cache_ttv_data, get_cached_ttv_data
+from util import cache_ttv_data, get_cached_ttv_data, filename_to_category_vector
 
 from keras.utils.generic_utils import Progbar
 
+CACHE_EXTENSION = '.waveforms.cache.hdf5'
+
 def read_wav_file(path_to_wav_file):
     return read(path_to_wav_file)[1]
-
-def filename_to_category_vector(filename):
-    emotion_number = get_emotion_number_from_filename(filename)
-    zeros = np.zeros(len(EMOTIONS), dtype='int16')
-    zeros[emotion_number] = 1
-    return zeros
 
 
 def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, cache=None, verbosity=1):
     """
     Returns each ttv_field as a dictionary {x:, y:}
+    cache: path to where cached data is, or where the data will be cached after retrieval. Note that the cahe filename will have ".waveforms.cache.hdf5 appended to the name"
     """
-
     def log(msg, level):
         if level <= verbosity:
             print(msg)
 
-    if cache is not None and os.path.exists(cache):
-        log('FOUND CACHED TTV DATA', 1)
-        return get_cached_ttv_data(cache)
-
+    if cache is not None and os.path.exists(cache + CACHE_EXTENSION):
+        log('FOUND CACHED TTV WAVEFORM DATA', 1)
+        return get_cached_ttv_data(cache + CACHE_EXTENSION)
 
     ttv_info = (ttv_info['test'], ttv_info['train'], ttv_info['validation'])
 
@@ -46,10 +40,8 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
         pb.add(1)
         return wave_data
 
-    # wavfiles = map(lambda info_set: map(get_data, info_set), ttv_info)
     wavfiles = map_for_each_set(get_data, ttv_info)
 
-    # emotions = map(lambda info_set: map(filename_to_category_vector, info_set), ttv_info)
     emotions = map_for_each_set(filename_to_category_vector, ttv_info)
 
     ttv_data = (
@@ -58,9 +50,10 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
     {'x': np.array(wavfiles[2]), 'y': np.array(emotions[2])},
     )
 
+
     if cache is not None:
-        cache_ttv_data(cache, ttv_data)
-        log('CACHING TTV DATA FOR LATER USE', 1)
+        cache_ttv_data(cache + CACHE_EXTENSION, ttv_data)
+        log('CACHING WAVEFORM TTV DATA FOR LATER USE AT: ' +  cache + CACHE_EXTENSION, 1)
 
     return ttv_data
 

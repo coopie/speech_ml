@@ -2,6 +2,7 @@ import os
 import errno
 import yaml
 import h5py
+import numpy as np
 
 
 # echoes the behaviour of mkdir -p
@@ -56,6 +57,11 @@ def get_emotion_from_filename(filename):
 def get_emotion_number_from_filename(filename):
     return EMOTION_NUMBERS[filename.split('/')[-1].split('.')[0].split('_')[1]]
 
+def filename_to_category_vector(filename):
+    emotion_number = get_emotion_number_from_filename(filename)
+    zeros = np.zeros(len(EMOTIONS), dtype='int16')
+    zeros[emotion_number] = 1
+    return zeros
 
 def get_cached_ttv_data(path):
     f = h5py.File(path, 'r')

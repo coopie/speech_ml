@@ -90,7 +90,6 @@ def train(
             callbacks=callbacks
         )
         log("END OF EPOCHS: BEST VAIDATION ACCURACY: {0:4f}".format(max(history.history['val_acc'])), 1)
-        # code.interact(local=locals())
         del model
 
     log('TRAINING ENDED, GETTING TEST SET RESULTS', 1)
