@@ -1,17 +1,14 @@
-#
-#   This experiment yielded nothing as well, also training to learn random
-#
-#
 import src_context
 
 import learning
-from ttv_to_waveforms import ttv_to_waveforms
+from ttv_to_spectrograms import ttv_to_spectrograms
 from util import ttv_yaml_to_dict, EMOTIONS
 
-from keras.callbacks import EarlyStopping
 from keras.models import Sequential
-from keras.layers.core import Dense
-from keras.layers import Dropout
+from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Convolution1D, MaxPooling1D
+from keras.optimizers import SGD
+from keras.callbacks import EarlyStopping
 import numpy as np
 import math
 import random
@@ -19,27 +16,36 @@ import random
 SAMPLE_RATE = 48000
 TIME_WINDOW = 3
 
-THIS_DIR = 'experiments/RAVDESS_MLP/'
+
+
+THIS_DIR = 'experiments/RAVDESS_SPEC_MLP/'
 
 def main():
-    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv1.yaml')
-    print("GETTING WAVEFORM DATA...")
-    ttv_data = ttv_to_waveforms(ttv_info, normalise=normalise, cache=THIS_DIR + 'ttv1.cache.hdf5')
+    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv.yaml')
+    print("GETTING SPECTORGRAM DATA...")
+    ttv_data = ttv_to_spectrograms(
+        ttv_info,
+        normalise_waveform=normalise,
+        normalise_spectrogram=slice_spectrogram,
+        cache=THIS_DIR + 'ttv'
+    )
+
+    test, train, val = ttv_data
 
     learning.train(
         make_mlp_model,
         ttv_data,
-        'experiment1',
-        path_to_results='experiments/RAVDESS_MLP',
+        '1D_CNN_RAVDESS',
+        path_to_results=THIS_DIR,
         generate_callbacks=generate_callbacks,
-        number_of_epochs=2,
-        # dry_run=True,
+        number_of_epochs=200,
+        dry_run=False,
         to_terminal=True
     )
 
 def generate_callbacks():
     return [
-        EarlyStopping(monitor='val_acc', patience=3)
+        EarlyStopping(monitor='val_acc', patience=30)
     ]
 
 def make_mlp_model(**kwargs):
@@ -52,13 +58,15 @@ def make_mlp_model(**kwargs):
 
     model = Sequential()
 
-    top_layer = random.randint(512, 1024)
+    top_layer = random.randint(512, 1024) * 5
     second_layer = random.randint(4, 12) ** 2
 
     if kwargs['verbosity'] >= 1:
         print('top layer: ', top_layer, 'second layer: ', second_layer)
 
-    model.add(Dense(top_layer, activation="tanh", init='uniform', input_shape=(SAMPLE_RATE*TIME_WINDOW,)))
+    model.add(Flatten(input_shape=kwargs['example_input'].shape))
+
+    model.add(Dense(top_layer, activation="tanh", init='uniform'))
     model.add(Dropout(0.5))
 
     model.add(Dense(second_layer, init='uniform', activation='tanh'))
@@ -73,14 +81,10 @@ def make_mlp_model(**kwargs):
 
 
 def normalise(datum):
-    return list(map(squash, datum[:SAMPLE_RATE*TIME_WINDOW]))
-# def normalise(datum):
-#     return datum[:SAMPLE_RATE*TIME_WINDOW]
+    return datum[:SAMPLE_RATE*TIME_WINDOW]
 
-def squash(x):
-    # no academia backing this up - just a thought
-    return math.log(abs(x) + 1, 30)
-
+def slice_spectrogram(spec):
+    return spec[len(spec)//2 :]
 
 if __name__ == '__main__':
     main()

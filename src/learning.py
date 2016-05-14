@@ -58,13 +58,13 @@ def train(
             print(message)
 
     if dry_run is True and to_terminal is True:
-        warnings.warn('Warning: cannot finish to terminal if you are\'t saving models')
+        warnings.warn('Warning: cannot finish to terminal if you aren\'t saving models')
         to_terminal = False
 
     model_perf_tracker = None
     if not dry_run:
         model_perf_tracker = CompleteModelCheckpoint(
-            path_to_results + '/' + experiment_name + '_weights_{val_acc:.4f}',
+            path_to_results + '/' + experiment_name + '_acc_{val_acc:.4f}',
             monitor='val_acc',
             save_best_only=True
         )
@@ -73,7 +73,7 @@ def train(
     test_data, train_data, validation_data = ttv
 
     while not end_training():
-        model, compile_args = generate_model(verbosity = verbosity)
+        model, compile_args = generate_model(verbosity=verbosity, example_input=test_data['x'][0])
 
         callbacks = generate_callbacks()
         if not dry_run:

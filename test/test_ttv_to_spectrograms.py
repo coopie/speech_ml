@@ -22,7 +22,7 @@ def dummy_get_waveforms(ttv_info,*unused, **also_unused):
     )
 
 
-def dummy_make_spectrogram(waveform):
+def dummy_make_spectrogram(waveform, **unused):
     return np.array([[1,2],[4,6]])
 
 

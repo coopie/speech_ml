@@ -15,11 +15,14 @@
 TODO:
 
 ### NOW
+* convolution on sliced data
+* whitening
+* confusion matrx stuff (to do in belfast)
 * more data (python browser thingy)
-* migration to python3
 * make init script nicer for someone else to use
 * tests for learning.py - v important
-* Actual experiments - normalising waveform intensity, more variation on the MLP experiment
+* tests for CACHING
+* tests for normalising things
 
 
 ### LATER
