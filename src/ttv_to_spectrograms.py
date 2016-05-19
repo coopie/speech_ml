@@ -3,24 +3,19 @@ import numpy as np
 from keras.utils.generic_utils import Progbar
 from scipy.signal import spectrogram
 import os
-from util import get_cached_ttv_data, cache_ttv_data
-
+from util import get_cached_data, cache_data
+from data_names import *
 
 flag = True
-def default_make_spectrogram(waveform, spec_args):
-    global flag
-    f, t, sxx = spectrogram(waveform, **spec_args)
-    if flag:
-        flag = False
-
-    return sxx
+def default_make_spectrogram(waveform, **spec_args):
+    return spectrogram(waveform, **spec_args)
 
 CACHE_EXTENSION = '.spectrograms.cache.hdf5'
 
 # from some paper:
 # TODO
 DEFAULT_SPECTROGRAM_ARGS = {
-    'fs': 48000
+
 }
 
 def ttv_to_spectrograms(ttv_info,
@@ -41,36 +36,53 @@ def ttv_to_spectrograms(ttv_info,
 
     if cache is not None and os.path.exists(cache + CACHE_EXTENSION):
         log('FOUND CACHED TTV SPECTORGRAM DATA', 1)
-        return get_cached_ttv_data(cache + CACHE_EXTENSION)
+        return get_cached_data(cache + CACHE_EXTENSION)
 
-    test, train, validation = get_waveforms(
+    waveform_data = get_waveforms(
         ttv_info,
         normalise=normalise_waveform,
         cache=cache,
         verbosity=verbosity
     )
 
-    NUM_RESOURCES = sum([len(test['x']), len(train['x']), len(validation['x'])])
+    NUM_RESOURCES = len(waveform_data[0])
     pb = Progbar(NUM_RESOURCES, verbose=verbosity)
 
-    def make_spectrogram_with_progbar(waveform):
-        s = make_spectrogram(waveform, **spectrogram_args)
+    def make_spectrogram_with_progbar(waveform, frequency):
+        fs, ts, s = make_spectrogram(waveform, fs=frequency, **spectrogram_args)
         if normalise_spectrogram is not None:
             s = normalise_spectrogram(s)
         pb.add(1)
-        return s
+        return (fs, ts, s)
 
+    spectrogram_data = [make_spectrogram_with_progbar(waveform, frequency)
+        for waveform, frequency in zip(waveform_data[WAVEFORM], waveform_data[FREQUENCY])]
 
-    test['x'] = np.array([make_spectrogram_with_progbar(datum) for datum in test['x']])
-    train['x'] = np.array([make_spectrogram_with_progbar(datum) for datum in train['x']])
-    validation['x'] = np.array([make_spectrogram_with_progbar(datum) for datum in validation['x']])
+    spectrograms = []
+    frequencies = []
+    times = []
+    for fs, ts, s in spectrogram_data:
+        spectrograms.append(s)
+        frequencies.append(fs)
+        times.append(ts)
+
+    spectrogram_data = (
+        waveform_data[ID],
+        waveform_data[SET],
+        np.array(spectrograms),
+        np.array(frequencies),
+        np.array(times)
+    )
 
     if cache is not None:
         log('CACHING TTV SPECTORGRAM DATA FOR LATER USE AT: ' + cache + CACHE_EXTENSION, 1)
-        cache_ttv_data(cache + CACHE_EXTENSION, (test, train, validation))
+        cache_data(cache + CACHE_EXTENSION, spectrogram_data)
 
-    return test, train, validation
+    return spectrogram_data
 
 
 def map_for_each_set_x(func, ttv):
     return [list(map(func, s['x'])) for s in ttv]
+
+def for_each_set(func, ttv):
+    return [func(s) for s in ttv]

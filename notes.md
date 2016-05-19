@@ -10,7 +10,7 @@
 TODO:
 
 ### NOW
-have model point to the ttv it used
+* better ttv splitting
 * convolution on sliced data
 * whitening
 * make init script nicer for someone else to use

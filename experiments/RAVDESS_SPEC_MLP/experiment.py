@@ -23,14 +23,13 @@ THIS_DIR = 'experiments/RAVDESS_SPEC_MLP/'
 def main():
     ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv.yaml')
     print("GETTING SPECTORGRAM DATA...")
-    ttv_data = ttv_to_spectrograms(
+    spectrogram_data = ttv_to_spectrograms(
         ttv_info,
         normalise_waveform=normalise,
         normalise_spectrogram=slice_spectrogram,
         cache=THIS_DIR + 'ttv'
     )
-
-    test, train, val = ttv_data
+    test, train, validation = ttv_data = learning.split_ttv(spectrogram_data)
 
     learning.train(
         make_mlp_model,
@@ -80,7 +79,7 @@ def make_mlp_model(**kwargs):
     return model, compile_args
 
 
-def normalise(datum):
+def normalise(datum, **unused):
     return datum[:SAMPLE_RATE*TIME_WINDOW]
 
 def slice_spectrogram(spec):

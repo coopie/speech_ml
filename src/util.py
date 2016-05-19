@@ -64,6 +64,49 @@ def filename_to_category_vector(filename):
     zeros[emotion_number] = 1
     return zeros
 
+def get_cached_data(path):
+    f = h5py.File(path, 'r')
+
+    kind = path.split('.')[-3]
+    print('kind: ', kind)
+
+
+    names = None
+    if kind == 'spectrograms':
+        names = spectrogram_names
+    elif kind == 'waveforms':
+        names = waveform_names
+
+    data = []
+    for key in names:
+        stuff = f[key]
+        if np.issubdtype(stuff.dtype, np.dtype('|S')):
+            data.append(np.array([x.decode('UTF-8') for x in stuff[:]]))
+        else:
+            data.append(stuff[:])
+
+    return data
+
+
+
+def cache_data(path, data):
+
+    names = None
+    if len(data) == 4:
+        names = waveform_names
+    else:
+        names = spectrogram_names
+
+    f = h5py.File(path, 'w')
+
+    for name, datum in zip(names, data):
+        if np.issubdtype(datum.dtype, np.dtype('<U')):
+            datum = [x.encode('ascii') for x in datum]
+        f.create_dataset(name, data=datum)
+
+    f.close()
+
+
 def get_cached_ttv_data(path):
     f = h5py.File(path, 'r')
 
@@ -84,25 +127,16 @@ def get_cached_ttv_data(path):
 
 
 def cache_ttv_data(path, ttv_data):
-    # test_data, train_data, validation_data = ttv_data
-
-    names = None
-    if len(ttv_data) is 4:
-        names = waveform_names
-    else:
-        names = spectrogram_names
+    test_data, train_data, validation_data = ttv_data
 
     f = h5py.File(path, 'w')
 
-    for name, data in zip(names, ttv_data):
-        f.create_dataset(name, data=data)
+    f.create_dataset('test/x', data=test_data['x'])
+    f.create_dataset('test/y', data=test_data['y'])
 
-    # f.create_dataset('test/x', data=test_data['x'])
-    # f.create_dataset('test/y', data=test_data['y'])
-    #
-    # f.create_dataset('train/x', data=train_data['x'])
-    # f.create_dataset('train/y', data=train_data['y'])
-    #
-    # f.create_dataset('validation/x', data=validation_data['x'])
-    # f.create_dataset('validation/y', data=validation_data['y'])
+    f.create_dataset('train/x', data=train_data['x'])
+    f.create_dataset('train/y', data=train_data['y'])
+
+    f.create_dataset('validation/x', data=validation_data['x'])
+    f.create_dataset('validation/y', data=validation_data['y'])
     f.close()

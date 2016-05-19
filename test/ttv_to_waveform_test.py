@@ -14,7 +14,7 @@ TEST_TTV_INFO = {
 }
 
 def dummy_read_data(path):
-    return np.array([5,6,7,8]), np.array([1,2,3,4])
+    return (60, np.array([1,2,3,4]))
 
 class TestTTVToWaveformMethods(unittest.TestCase):
 
@@ -32,7 +32,7 @@ class TestTTVToWaveformMethods(unittest.TestCase):
         sets = np.concatenate((np.repeat('test', 2), np.repeat('train', 2), np.repeat('validation', 2)))
 
         waveforms = np.repeat(np.array([[1,2,3,4]]), 6, axis=0)
-        frequencies = np.repeat(np.array([[5,6,7,8]]), 6, axis=0)
+        frequencies = np.repeat(60, 6, axis=0)
 
         self.assertTrue(
             np.all(ttv_data[ID] == ids)
