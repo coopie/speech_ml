@@ -35,7 +35,7 @@ def main():
     learning.train(
         make_mlp_model,
         ttv_data,
-        '1D_CNN_RAVDESS',
+        'mlp_spectrogram_model',
         path_to_results=THIS_DIR,
         generate_callbacks=generate_callbacks,
         number_of_epochs=200,
@@ -84,7 +84,7 @@ def normalise(datum):
     return datum[:SAMPLE_RATE*TIME_WINDOW]
 
 def slice_spectrogram(spec):
-    return spec[len(spec)//2 :]
+    return spec[int(len(spec) * 0.75) :]
 
 if __name__ == '__main__':
     main()

@@ -11,7 +11,7 @@ from keras.utils.generic_utils import Progbar
 CACHE_EXTENSION = '.waveforms.cache.hdf5'
 
 def read_wav_file(path_to_wav_file):
-    return read(path_to_wav_file)[1]
+    return read(path_to_wav_file)
 
 
 def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, cache=None, verbosity=1):
@@ -34,20 +34,20 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
     pb = Progbar(NUM_RESOURCES, verbose=verbosity)
 
     def get_data(path):
-        wave_data = get_waveform_data(path)
+        freq, wave_data = get_waveform_data(path)
         if normalise is not None:
-            wave_data = normalise(wave_data)
+            wave_data = normalise(wave_data, frequency=freq)
         pb.add(1)
-        return wave_data
+        return freq, wave_data
 
     wavfiles = map_for_each_set(get_data, ttv_info)
 
     emotions = map_for_each_set(filename_to_category_vector, ttv_info)
 
     ttv_data = (
-    {'x': np.array(wavfiles[0]), 'y': np.array(emotions[0])},
-    {'x': np.array(wavfiles[1]), 'y': np.array(emotions[1])},
-    {'x': np.array(wavfiles[2]), 'y': np.array(emotions[2])},
+    {'x': np.array([x[1] for x in wavfiles[0]]), 'y': np.array(emotions[0]), 'frequencies': np.array([x[0] for x in wavfiles[0]])},
+    {'x': np.array([x[1] for x in wavfiles[1]]), 'y': np.array(emotions[1]), 'frequencies': np.array([x[0] for x in wavfiles[1]])},
+    {'x': np.array([x[1] for x in wavfiles[2]]), 'y': np.array(emotions[2]), 'frequencies': np.array([x[0] for x in wavfiles[2]])},
     )
 
 

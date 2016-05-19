@@ -12,7 +12,7 @@ TEST_TTV_INFO = {
 }
 
 def dummy_read_data(path):
-    return np.array([1,2,3,4])
+    return np.array([5,6,7,8]), np.array([1,2,3,4])
 
 class TestTTVToWaveformMethods(unittest.TestCase):
 
@@ -25,7 +25,8 @@ class TestTTVToWaveformMethods(unittest.TestCase):
         expected_waveform = np.array([1,2,3,4])
         expected_dataset = {
             'x': [expected_waveform, expected_waveform],
-            'y': np.array([np.array([0,0,1,0,0,0,0,0]), np.array([0,0,0,1,0,0,0,0])])
+            'y': np.array([np.array([0,0,1,0,0,0,0,0]), np.array([0,0,0,1,0,0,0,0])]),
+            'frequencies': np.array([np.array([5,6,7,8]), np.array([5,6,7,8])])
         }
 
         self.assertTrue(
@@ -47,6 +48,16 @@ class TestTTVToWaveformMethods(unittest.TestCase):
         )
         self.assertTrue(
             np.all(waveforms[2]['x'] == expected_dataset['x'])
+        )
+
+        self.assertTrue(
+            np.all(waveforms[0]['frequencies'] == expected_dataset['frequencies'])
+        )
+        self.assertTrue(
+            np.all(waveforms[1]['frequencies'] == expected_dataset['frequencies'])
+        )
+        self.assertTrue(
+            np.all(waveforms[2]['frequencies'] == expected_dataset['frequencies'])
         )
 
 

@@ -5,24 +5,20 @@
 *  get the scipy whl and numpy blas whl whl
 
 ## Spectrograms
-* https://papers.nips.cc/paper/3674-unsupervised-feature-learning-for-audio-classification-using-convolutional-deep-belief-networks.pdf
-  * 20ms window size, 10ms overlap
-  * PCA whitening, (80 components)
-
-* http://research.microsoft.com/pubs/230136/IS140441.PDF
 
 
 TODO:
 
 ### NOW
+have model point to the ttv it used
 * convolution on sliced data
 * whitening
-* confusion matrx stuff (to do in belfast)
-* more data (python browser thingy)
 * make init script nicer for someone else to use
 * tests for learning.py - v important
 * tests for CACHING
 * tests for normalising things
+* more robust data store - frequencies should be stored for spectrograms
+* more data: berlin, toronto and RML
 
 
 ### LATER
@@ -54,6 +50,17 @@ where:
 * `emotion` is any from `{neutral, calm, happy, sad, angry, fearful, disgust, surprised}`
 * `action` is a string representing what the subject is saying
 * `repitionid` (optional) should be a number signifying if the subject has more than one recording of a specific emotion.
+
+
+## Papers and misc. Information
+* http://cs231n.stanford.edu/reports/Cs_231n_paper.pdf
+* https://papers.nips.cc/paper/3674-unsupervised-feature-learning-for-audio-classification-using-convolutional-deep-belief-networks.pdf
+  * 20ms window size, 10ms overlap
+  * PCA whitening, (80 components)
+* http://research.microsoft.com/pubs/230136/IS140441.PDF
+
+
+https://www.youtube.com/watch?v=qv6UVOQ0F44
 
 ## Datasets That Look Useful:
 

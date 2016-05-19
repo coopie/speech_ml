@@ -11,7 +11,7 @@ TEST_TTV_INFO = {
 "validation" : ['test/dummy_data/3_happy_kid_1.wav', 'test/dummy_data/3_sad_kid_1.wav']
 }
 
-def dummy_get_waveforms(ttv_info,*unused, **also_unused):
+def dummy_get_waveforms(ttv_info, *unused, **also_unused):
     test_y =       np.array([filename_to_category_vector(path) for path in ttv_info['test']])
     train_y =      np.array([filename_to_category_vector(path) for path in ttv_info['train']])
     validation_y = np.array([filename_to_category_vector(path) for path in ttv_info['validation']])

@@ -11,8 +11,6 @@ def default_make_spectrogram(waveform, spec_args):
     global flag
     f, t, sxx = spectrogram(waveform, **spec_args)
     if flag:
-        np.savetxt('frequencies.txt', f, fmt='%.8f')
-        np.savetxt('times.txt', t, fmt='%.8f')
         flag = False
 
     return sxx
@@ -56,7 +54,7 @@ def ttv_to_spectrograms(ttv_info,
     pb = Progbar(NUM_RESOURCES, verbose=verbosity)
 
     def make_spectrogram_with_progbar(waveform):
-        s = make_spectrogram(waveform, spectrogram_args)
+        s = make_spectrogram(waveform, **spectrogram_args)
         if normalise_spectrogram is not None:
             s = normalise_spectrogram(s)
         pb.add(1)

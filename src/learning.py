@@ -64,7 +64,7 @@ def train(
     model_perf_tracker = None
     if not dry_run:
         model_perf_tracker = CompleteModelCheckpoint(
-            path_to_results + '/' + experiment_name + '_acc_{val_acc:.4f}',
+            path_to_results + '/' + experiment_name + '_{val_acc:.4f}_{acc:.4f}',
             monitor='val_acc',
             save_best_only=True
         )
