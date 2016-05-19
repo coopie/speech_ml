@@ -1,7 +1,9 @@
 from ttv_to_waveforms import ttv_to_waveforms
+from data_names import *
 import unittest
 
 import numpy as np
+import os
 
 DUMMY_DATA = 'test/dummy_data'
 
@@ -17,47 +19,32 @@ def dummy_read_data(path):
 class TestTTVToWaveformMethods(unittest.TestCase):
 
     def test_get_dataset(self):
-        waveforms = ttv_to_waveforms(
+        ttv_data = ttv_to_waveforms(
             TEST_TTV_INFO,
             get_waveform_data=dummy_read_data,
             verbosity=0
         )
-        expected_waveform = np.array([1,2,3,4])
-        expected_dataset = {
-            'x': [expected_waveform, expected_waveform],
-            'y': np.array([np.array([0,0,1,0,0,0,0,0]), np.array([0,0,0,1,0,0,0,0])]),
-            'frequencies': np.array([np.array([5,6,7,8]), np.array([5,6,7,8])])
-        }
+
+        ids = np.array([filename.split('.')[0]
+            for filename in os.listdir(DUMMY_DATA)
+            if filename.endswith('.wav') and int(filename[0]) <= 3])
+
+        sets = np.concatenate((np.repeat('test', 2), np.repeat('train', 2), np.repeat('validation', 2)))
+
+        waveforms = np.repeat(np.array([[1,2,3,4]]), 6, axis=0)
+        frequencies = np.repeat(np.array([[5,6,7,8]]), 6, axis=0)
 
         self.assertTrue(
-            np.all(waveforms[0]['y'] == expected_dataset['y'])
+            np.all(ttv_data[ID] == ids)
         )
         self.assertTrue(
-            np.all(waveforms[1]['y'] == expected_dataset['y'])
+            np.all(ttv_data[SET] == sets)
         )
         self.assertTrue(
-            np.all(waveforms[2]['y'] == expected_dataset['y'])
-        )
-
-
-        self.assertTrue(
-            np.all(waveforms[0]['x'] == expected_dataset['x'])
+            np.all(ttv_data[WAVEFORM] == waveforms)
         )
         self.assertTrue(
-            np.all(waveforms[1]['x'] == expected_dataset['x'])
-        )
-        self.assertTrue(
-            np.all(waveforms[2]['x'] == expected_dataset['x'])
-        )
-
-        self.assertTrue(
-            np.all(waveforms[0]['frequencies'] == expected_dataset['frequencies'])
-        )
-        self.assertTrue(
-            np.all(waveforms[1]['frequencies'] == expected_dataset['frequencies'])
-        )
-        self.assertTrue(
-            np.all(waveforms[2]['frequencies'] == expected_dataset['frequencies'])
+            np.all(ttv_data[FREQUENCY] == frequencies)
         )
 
 

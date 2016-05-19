@@ -37,6 +37,11 @@ have model point to the ttv it used
 ## The Non-vocal baseline:
 * 2 methods - spectrograms and raw waveform.
 
+
+## DATA
+
+[ID, SET, DATA, MISC...]
+
 ##  File Naming
 
 files from new corpora will be changed to new names:

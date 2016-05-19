@@ -27,10 +27,16 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
         log('FOUND CACHED TTV WAVEFORM DATA', 1)
         return get_cached_ttv_data(cache + CACHE_EXTENSION)
 
-    ttv_info = (ttv_info['test'], ttv_info['train'], ttv_info['validation'])
+    paths = np.array(ttv_info['test'] + ttv_info['train'] + ttv_info['validation'])
+    sets = np.concatenate((
+        np.repeat('test', len(ttv_info['test'])),
+        np.repeat('train', len(ttv_info['train'])),
+        np.repeat('validation', len(ttv_info['validation']))))
 
 
-    NUM_RESOURCES = sum(list(map(lambda x: len(x), ttv_info)))
+    # NUM_RESOURCES = sum(list(map(lambda x: len(x), ttv_info)))
+    NUM_RESOURCES = len(ttv_info)
+
     pb = Progbar(NUM_RESOURCES, verbose=verbosity)
 
     def get_data(path):
@@ -38,24 +44,34 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
         if normalise is not None:
             wave_data = normalise(wave_data, frequency=freq)
         pb.add(1)
-        return freq, wave_data
+        return np.array([freq, wave_data])
 
-    wavfiles = map_for_each_set(get_data, ttv_info)
+    # wavfiles = map_for_each_set(get_data, ttv_info)
 
-    emotions = map_for_each_set(filename_to_category_vector, ttv_info)
+    waveforms_and_frequencies = np.array([get_data(path) for path in paths])
 
-    ttv_data = (
-    {'x': np.array([x[1] for x in wavfiles[0]]), 'y': np.array(emotions[0]), 'frequencies': np.array([x[0] for x in wavfiles[0]])},
-    {'x': np.array([x[1] for x in wavfiles[1]]), 'y': np.array(emotions[1]), 'frequencies': np.array([x[0] for x in wavfiles[1]])},
-    {'x': np.array([x[1] for x in wavfiles[2]]), 'y': np.array(emotions[2]), 'frequencies': np.array([x[0] for x in wavfiles[2]])},
-    )
+    waveforms = waveforms_and_frequencies[:, 1]
+    frequencies = waveforms_and_frequencies[:, 0]
+
+    ids = np.array([strip_filename(path) for path in paths])
+
+    # emotions = map_for_each_set(filename_to_category_vector, ttv_info)
+
+    # ttv_data = (
+    # {'x': np.array([x[1] for x in wavfiles[0]]), 'y': np.array(emotions[0]), 'frequencies': np.array([x[0] for x in wavfiles[0]])},
+    # {'x': np.array([x[1] for x in wavfiles[1]]), 'y': np.array(emotions[1]), 'frequencies': np.array([x[0] for x in wavfiles[1]])},
+    # {'x': np.array([x[1] for x in wavfiles[2]]), 'y': np.array(emotions[2]), 'frequencies': np.array([x[0] for x in wavfiles[2]])},
+    # )
+
+    ttv_data = ids, sets, waveforms, frequencies
 
 
     if cache is not None:
-        cache_ttv_data(cache + CACHE_EXTENSION, ttv_data)
+        cache_ttv_data(cache + CACHE_EXTENSION, ttv_data, )
         log('CACHING WAVEFORM TTV DATA FOR LATER USE AT: ' +  cache + CACHE_EXTENSION, 1)
 
     return ttv_data
 
-def map_for_each_set(func, ttv):
-    return [list(map(func, s)) for s in ttv]
+
+def strip_filename(path):
+    return path.split('/')[-1].split('.')[0]
