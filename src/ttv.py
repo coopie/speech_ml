@@ -39,30 +39,63 @@ def make_ttv(dataset, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
     """
     Returns a tuple of test,train,validation sets (lists of paths to data).
     Currently only separates by subjectID.
+
+    Prioitises having a diverse set than a well fitting set. This means that the
+    'knapsacking' is done by subjects with the least videos first, so that each set can have
+    as many different subjects in as possible
     """
 
-    total_ttv = sum(ttv_ratio)
+    sizes_and_ids = [(len(dataset[key]), key) for key in dataset]
+    number_of_resources = sum([x[0] for x in sizes_and_ids])
 
-    subjects = list(dataset.keys())
-    print(subjects)
 
+    # Get the smallest first
+    sizes_and_ids.sort()
     if not deterministic:
-        random.shuffle(subjects)
+        random.shuffle(sizes_and_ids)
 
-    num_subjects = len(subjects)
+    # normalise ttv_ratio
+    ttv_ratio = [x/sum(ttv_ratio) for x in ttv_ratio]
 
-    test_subjects, rest = split_list(subjects, ttv_ratio[0]/float(sum(ttv_ratio)))
-    train_subjects, rest = split_list(rest, ttv_ratio[1]/float(sum(ttv_ratio[1:])))
-    validation_subjects = rest
+    data_sets = {
+        'test' : {
+            'subjects': [],
+            'number_of_files': 0,
+            'expected_size' : (ttv_ratio[0] * number_of_resources),
+        },
+        'train' : {
+            'subjects': [],
+            'number_of_files': 0,
+            'expected_size' : (ttv_ratio[1] * number_of_resources),
+        },
+        'validation' : {
+            'subjects': [],
+            'number_of_files': 0,
+            'expected_size' : (ttv_ratio[2] * number_of_resources)
+        }
+    }
 
+
+    set_names = list(data_sets.keys())
+    i = 0
+    while len(sizes_and_ids) > 0:
+        i += 1
+        s = data_sets[set_names[i % len(set_names)]]
+        
+        if s['number_of_files'] < s['expected_size']:
+            size, subjectID = sizes_and_ids.pop(0)
+            s['subjects'].append(subjectID)
+            s['number_of_files'] += size
 
     def get_filenames(subjects):
         return sum(list(map(lambda x: dataset[x], subjects)), [])
 
-    test_data, train_data, validation_data = \
-        list(map(get_filenames, (test_subjects, train_subjects, validation_subjects)))
+    # turn subjectIDs into paths to files
+    for data_set in data_sets:
+        s = data_sets[data_set]
+        s['paths'] = get_filenames(s['subjects'])
 
-    return (test_data, train_data, validation_data)
+    return data_sets['test']['paths'], data_sets['train']['paths'], data_sets['validation']['paths']
 
 
 def split_list(arr, proportion):
