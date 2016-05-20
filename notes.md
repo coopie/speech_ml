@@ -10,7 +10,7 @@
 TODO:
 
 ### NOW
-have model point to the ttv it used
+* better ttv splitting
 * convolution on sliced data
 * whitening
 * make init script nicer for someone else to use
@@ -36,6 +36,11 @@ have model point to the ttv it used
 
 ## The Non-vocal baseline:
 * 2 methods - spectrograms and raw waveform.
+
+
+## DATA
+
+[ID, SET, DATA, MISC...]
 
 ##  File Naming
 

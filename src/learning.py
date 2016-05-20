@@ -13,7 +13,8 @@ from keras.models import model_from_yaml
 from keras.optimizers import get as get_optimizer
 
 import numpy as np
-from util import mkdir_p, save_to_yaml_file, ttv_yaml_to_dict
+from util import mkdir_p, save_to_yaml_file, ttv_yaml_to_dict, filename_to_category_vector
+from data_names import *
 import warnings
 
 kb = None
@@ -282,3 +283,17 @@ class CompleteModelCheckpoint(Callback):
 def save_to_file(filepath, string):
     with open(filepath, 'w') as f:
         f.write(string)
+
+def split_ttv(data):
+    # generates the split from the ttv
+    emotions_vectors = [filename_to_category_vector(ident) for ident in data[ID]]
+    ttv_data = []
+
+    for set_name in ['test', 'train', 'validation']:
+        set_data = {}
+        in_set = data[SET] == set_name
+        set_data['x'] = np.array([x for x, pick in zip(data[DATA], in_set) if pick])
+        set_data['y'] = np.array([y for y, pick in zip(emotions_vectors, in_set) if pick])
+        ttv_data.append(set_data)
+
+    return ttv_data

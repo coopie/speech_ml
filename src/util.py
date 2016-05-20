@@ -3,6 +3,7 @@ import errno
 import yaml
 import h5py
 import numpy as np
+from data_names import *
 
 
 # echoes the behaviour of mkdir -p
@@ -62,6 +63,49 @@ def filename_to_category_vector(filename):
     zeros = np.zeros(len(EMOTIONS), dtype='int16')
     zeros[emotion_number] = 1
     return zeros
+
+def get_cached_data(path):
+    f = h5py.File(path, 'r')
+
+    kind = path.split('.')[-3]
+    print('kind: ', kind)
+
+
+    names = None
+    if kind == 'spectrograms':
+        names = spectrogram_names
+    elif kind == 'waveforms':
+        names = waveform_names
+
+    data = []
+    for key in names:
+        stuff = f[key]
+        if np.issubdtype(stuff.dtype, np.dtype('|S')):
+            data.append(np.array([x.decode('UTF-8') for x in stuff[:]]))
+        else:
+            data.append(stuff[:])
+
+    return data
+
+
+
+def cache_data(path, data):
+
+    names = None
+    if len(data) == 4:
+        names = waveform_names
+    else:
+        names = spectrogram_names
+
+    f = h5py.File(path, 'w')
+
+    for name, datum in zip(names, data):
+        if np.issubdtype(datum.dtype, np.dtype('<U')):
+            datum = [x.encode('ascii') for x in datum]
+        f.create_dataset(name, data=datum)
+
+    f.close()
+
 
 def get_cached_ttv_data(path):
     f = h5py.File(path, 'r')
