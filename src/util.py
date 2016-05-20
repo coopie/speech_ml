@@ -68,8 +68,6 @@ def get_cached_data(path):
     f = h5py.File(path, 'r')
 
     kind = path.split('.')[-3]
-    print('kind: ', kind)
-
 
     names = None
     if kind == 'spectrograms':
@@ -77,32 +75,53 @@ def get_cached_data(path):
     elif kind == 'waveforms':
         names = waveform_names
 
-    data = []
+    ids = f[names.pop(0)]
+    ids = np.array([x.decode('UTF-8') for x in ids[:]])
+
+    all_data = [ids]
     for key in names:
-        stuff = f[key]
-        if np.issubdtype(stuff.dtype, np.dtype('|S')):
-            data.append(np.array([x.decode('UTF-8') for x in stuff[:]]))
-        else:
-            data.append(stuff[:])
+
+        data =[]
+        for ident in ids:
+            datum = f[key + '/' + ident]
+            if np.issubdtype(datum.dtype, np.dtype('|S')):
+                data.append(datum[:].tostring().decode('UTF-8'))
+            elif datum.shape == ():
+                data.append(datum[()])
+            else:
+                data.append(datum[:])
+
+        all_data.append(stuff)
 
     return data
-
 
 
 def cache_data(path, data):
 
     names = None
     if len(data) == 4:
-        names = waveform_names
+        names = waveform_names[:]
     else:
-        names = spectrogram_names
+        names = spectrogram_names[:]
 
     f = h5py.File(path, 'w')
 
-    for name, datum in zip(names, data):
-        if np.issubdtype(datum.dtype, np.dtype('<U')):
-            datum = [x.encode('ascii') for x in datum]
-        f.create_dataset(name, data=datum)
+    ids = data[0]
+    ids_ascii = [x.encode('ascii') for x in ids]
+    f.create_dataset(names[0], data=ids_ascii)
+    data = data[1:]
+    names = names[1:]
+
+    i = -1
+    for ident in ids:
+        i += 1
+        j = -1
+        for name in names:
+            j += 1
+            datum = data[j][i]
+            if np.issubdtype(datum.dtype, np.dtype('<U')):
+                datum = [x.encode('ascii') for x in datum]
+            f.create_dataset(name + '/' + ident, data=datum)
 
     f.close()
 

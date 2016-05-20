@@ -16,7 +16,7 @@ def read_wav_file(path_to_wav_file):
 
 def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, cache=None, verbosity=1):
     """
-    Returns each ttv_field as a dictionary {x:, y:}
+    TODO: explain this better 🐸
     cache: path to where cached data is, or where the data will be cached after retrieval. Note that the cahe filename will have ".waveforms.cache.hdf5 appended to the name"
     """
     def log(msg, level):
@@ -52,7 +52,6 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
     ids = np.array([strip_filename(path) for path in paths])
 
     ttv_data = ids, sets, waveforms, frequencies
-
 
     if cache is not None:
         cache_data(cache + CACHE_EXTENSION, ttv_data)

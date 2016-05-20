@@ -13,6 +13,8 @@ import numpy as np
 import math
 import random
 
+from scipy.interpolate import interp1d
+
 SAMPLE_RATE = 48000
 TIME_WINDOW = 3
 
@@ -21,7 +23,7 @@ TIME_WINDOW = 3
 THIS_DIR = 'experiments/RAVDESS_SPEC_MLP/'
 
 def main():
-    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv.yaml')
+    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv_berlin_ravdess.yaml')
     print("GETTING SPECTORGRAM DATA...")
     spectrogram_data = ttv_to_spectrograms(
         ttv_info,
@@ -79,8 +81,9 @@ def make_mlp_model(**kwargs):
     return model, compile_args
 
 
-def normalise(datum, **unused):
-    return datum[:SAMPLE_RATE*TIME_WINDOW]
+def normalise(datum, frequency, **unused):
+    return datum[:frequency*TIME_WINDOW]
+
 
 def slice_spectrogram(spec):
     return spec[int(len(spec) * 0.75) :]
