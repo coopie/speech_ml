@@ -29,8 +29,8 @@ def dummy_get_waveforms(ttv_info, *unused, **also_unused):
     )
 
 
-def dummy_make_spectrogram(waveform, frequency, **unused):
-    return np.array([frequency, frequency]), np.array([0,1]), np.reshape(waveform * frequency, (2,2))
+def dummy_make_spectrogram(waveform, fs, **unused):
+    return np.array([fs, fs]), np.array([0,1]), np.reshape(waveform * fs, (2,2))
 
 
 class TestTTVToWaveformMethods(unittest.TestCase):
