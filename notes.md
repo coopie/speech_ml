@@ -10,7 +10,6 @@
 TODO:
 
 ### NOW
-* better ttv splitting
 * convolution on sliced data
 * whitening
 * make init script nicer for someone else to use
@@ -19,6 +18,8 @@ TODO:
 * tests for normalising things
 * more robust data store - frequencies should be stored for spectrograms
 * more data: berlin, toronto and RML
+* caching the ttv data
+* saving rough split in ttv.yaml
 
 
 ### LATER
