@@ -26,6 +26,8 @@ def main():
 def to_emotion(toronto_emotion):
     if toronto_emotion == 'ps':
         toronto_emotion = 'surprised'
+    if toronto_emotion == 'fear':
+        toronto_emotion = 'fearful'
 
     return toronto_emotion
 

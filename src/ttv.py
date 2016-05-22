@@ -9,7 +9,7 @@ import numpy as np
 DEFAULT_TTV_RATIO = (20, 60, 20)
 
 def main():
-    make_ttv_yaml(sys.argv[1:-1], sys.argv[-1])
+    make_ttv_yaml(sys.argv[1:-1], sys.argv[-1], deterministic=False)
 
 
 def make_ttv_yaml(corpora, path_to_ttv_file, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
@@ -24,9 +24,24 @@ def make_ttv_yaml(corpora, path_to_ttv_file, ttv_ratio=DEFAULT_TTV_RATIO, determ
         deterministic: whether or not to shuffle the resources around when making the set
     """
     dataset = get_dataset(corpora)
-    test, train, validation = make_ttv(dataset, ttv_ratio=ttv_ratio, deterministic=deterministic)
+    data_sets = make_ttv(dataset, ttv_ratio=ttv_ratio, deterministic=deterministic)
+
+    def get_for_ttv(key):
+        return (
+            data_sets['test'][key],
+            data_sets['train'][key],
+            data_sets['validation'][key]
+        )
+
+    test, train, validation = get_for_ttv('paths')
+
+    number_of_files_for_each_set  = list(get_for_ttv('number_of_files'))
+
+    number_of_subjects_for_each_set = [len(x) for x in get_for_ttv('subjects')]
 
     dict_for_yaml = {
+        'split': number_of_files_for_each_set,
+        'subject_split': number_of_subjects_for_each_set,
         "test": test,
         "train": train,
         "validation": validation
@@ -37,12 +52,19 @@ def make_ttv_yaml(corpora, path_to_ttv_file, ttv_ratio=DEFAULT_TTV_RATIO, determ
 
 def make_ttv(dataset, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
     """
-    Returns a tuple of test,train,validation sets (lists of paths to data).
+    Returns a dict of test,train,validation sets with information regarding the split (lists of paths to data).
     Currently only separates by subjectID.
 
     Prioitises having a diverse set than a well fitting set. This means that the
     'knapsacking' is done by subjects with the least videos first, so that each set can have
-    as many different subjects in as possible
+    as many different subjects in as possible.
+
+    returns {
+        'subjects': list of subjectIDs in the set
+        'number_of_files': number of files the set has
+        'expected_size' : (ttv_ratio[2] * number_of_resources)
+        'paths': list of paths to the files
+    }
     """
 
     sizes_and_ids = [(len(dataset[key]), key) for key in dataset]
@@ -57,31 +79,23 @@ def make_ttv(dataset, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
     # normalise ttv_ratio
     ttv_ratio = [x/sum(ttv_ratio) for x in ttv_ratio]
 
-    data_sets = {
-        'test' : {
+    data_sets = {}
+
+    for key, ratio in zip(['test', 'train', 'validation'], ttv_ratio):
+        data_sets[key] = {
             'subjects': [],
             'number_of_files': 0,
-            'expected_size' : (ttv_ratio[0] * number_of_resources),
-        },
-        'train' : {
-            'subjects': [],
-            'number_of_files': 0,
-            'expected_size' : (ttv_ratio[1] * number_of_resources),
-        },
-        'validation' : {
-            'subjects': [],
-            'number_of_files': 0,
-            'expected_size' : (ttv_ratio[2] * number_of_resources)
+            'expected_size' : (ratio * number_of_resources)
         }
-    }
 
 
+
+    last_trip = False
     set_names = list(data_sets.keys())
     i = 0
     while len(sizes_and_ids) > 0:
         i += 1
         s = data_sets[set_names[i % len(set_names)]]
-        
         if s['number_of_files'] < s['expected_size']:
             size, subjectID = sizes_and_ids.pop(0)
             s['subjects'].append(subjectID)
@@ -95,7 +109,7 @@ def make_ttv(dataset, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
         s = data_sets[data_set]
         s['paths'] = get_filenames(s['subjects'])
 
-    return data_sets['test']['paths'], data_sets['train']['paths'], data_sets['validation']['paths']
+    return data_sets
 
 
 def split_list(arr, proportion):
@@ -111,14 +125,14 @@ def get_dataset(corpora):
 
     wav_files_in_corpora = filter(lambda x: x.endswith('.wav'),
         sum(
-            [list(map(lambda x: corpus + '/' + x, os.listdir(corpus))) for corpus in corpora],
+            [list(map(lambda x: os.path.join(corpus, x), os.listdir(corpus))) for corpus in corpora],
             []
         ),
     )
 
     dataset = {}
     for wav_file in wav_files_in_corpora:
-        subjectID = wav_file.split('/')[-1].split('.')[0].split('_')[0]
+        subjectID = os.path.split(wav_file)[-1].split('.')[0].split('_')[0]
 
         if subjectID in dataset:
             dataset[subjectID].append(wav_file)

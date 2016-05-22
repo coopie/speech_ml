@@ -4,6 +4,7 @@ import yaml
 import h5py
 import numpy as np
 from data_names import *
+from os.path import split as split_path
 
 
 # echoes the behaviour of mkdir -p
@@ -52,11 +53,11 @@ def save_to_yaml_file(filepath, o):
 
 
 def get_emotion_from_filename(filename):
-    return filename.split('/')[-1].split('.')[0].split('_')[1]
+    return path_split(filename)[-1].split('.')[0].split('_')[1]
 
 
 def get_emotion_number_from_filename(filename):
-    return EMOTION_NUMBERS[filename.split('/')[-1].split('.')[0].split('_')[1]]
+    return EMOTION_NUMBERS[path_split(filename)[-1].split('.')[0].split('_')[1]]
 
 def filename_to_category_vector(filename):
     emotion_number = get_emotion_number_from_filename(filename)
@@ -121,7 +122,7 @@ def cache_data(path, data):
             datum = data[j][i]
             if np.issubdtype(datum.dtype, np.dtype('<U')):
                 datum = [x.encode('ascii') for x in datum]
-            f.create_dataset(name + '/' + ident, data=datum)
+            f.create_dataset(os.path.join(name, ident), data=datum)
 
     f.close()
 

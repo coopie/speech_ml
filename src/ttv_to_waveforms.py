@@ -45,8 +45,8 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
         return (freq, wave_data)
 
     waveforms_and_frequencies = [get_data(path) for path in paths]
-
     waveforms   = np.array([x[1] for x in waveforms_and_frequencies])
+
     frequencies = np.array([x[0] for x in waveforms_and_frequencies])
 
     ids = np.array([strip_filename(path) for path in paths])
@@ -61,4 +61,4 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
 
 
 def strip_filename(path):
-    return path.split('/')[-1].split('.')[0]
+    return os.path.split(path)[-1].split('.')[0]
