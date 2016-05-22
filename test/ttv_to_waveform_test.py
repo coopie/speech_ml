@@ -5,6 +5,8 @@ import unittest
 import numpy as np
 import os
 
+from util import get_cached_data
+
 DUMMY_DATA = 'test/dummy_data'
 
 TEST_TTV_INFO = {
@@ -47,7 +49,35 @@ class TestTTVToWaveformMethods(unittest.TestCase):
             np.all(ttv_data[FREQUENCY] == frequencies)
         )
 
+    def test_caching(self):
+        ttv_data = ttv_to_waveforms(
+            TEST_TTV_INFO,
+            get_waveform_data=dummy_read_data,
+            verbosity=0,
+            cache='test'
+        )
 
+        self.assertTrue(os.path.exists('test.waveforms.cache.hdf5'))
+
+        ids, sets, waveforms, frequencies = get_cached_data('test.waveforms.cache.hdf5')
+
+        self.assertTrue(
+            np.all(ttv_data[ID] == ids)
+        )
+        self.assertTrue(
+            np.all(ttv_data[SET] == sets)
+        )
+        self.assertTrue(
+            np.all(ttv_data[WAVEFORM] == waveforms)
+        )
+        self.assertTrue(
+            np.all(ttv_data[FREQUENCY] == frequencies)
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists('test.waveforms.cache.hdf5'):
+            os.remove('test.waveforms.cache.hdf5')
 
 if __name__ == '__main__':
     unittest.main()

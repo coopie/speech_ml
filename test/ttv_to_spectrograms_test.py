@@ -3,6 +3,8 @@ import unittest
 from util import filename_to_category_vector
 import numpy as np
 from data_names import *
+import os
+from util import get_cached_data
 
 DUMMY_DATA = 'test/dummy_data'
 
@@ -33,8 +35,7 @@ def dummy_make_spectrogram(waveform, fs, **unused):
     return np.array([fs, fs]), np.array([0,1]), np.reshape(waveform * fs, (2,2))
 
 
-class TestTTVToWaveformMethods(unittest.TestCase):
-
+class TestTTVToSpectrogramMethods(unittest.TestCase):
 
     def test_get_spectrograms(self):
 
@@ -45,12 +46,34 @@ class TestTTVToWaveformMethods(unittest.TestCase):
             verbosity=0
         )
 
+
+        for expected, actual in zip(EXPECTED, spectrogram_data):
+            self.assertTrue(
+                np.all(expected == actual)
+            )
+
+    def test_caching(self):
+        spectrogram_data = ttv_to_spectrograms(
+            TEST_TTV_INFO,
+            make_spectrogram=dummy_make_spectrogram,
+            get_waveforms=dummy_get_waveforms,
+            verbosity=0,
+            cache='test'
+        )
+        self.assertTrue(os.path.exists('test.spectrograms.cache.hdf5'))
+
+        cached = get_cached_data('test.spectrograms.cache.hdf5')
+
         for expected, actual in zip(EXPECTED, spectrogram_data):
             self.assertTrue(
                 np.all(expected == actual)
             )
 
 
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists('test.spectrograms.cache.hdf5'):
+            os.remove('test.spectrograms.cache.hdf5')
+
 if __name__ == '__main__':
     unittest.main()
-0
