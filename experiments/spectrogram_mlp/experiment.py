@@ -18,9 +18,8 @@ from scipy.interpolate import interp1d
 SAMPLE_RATE = 48000
 TIME_WINDOW = 1
 
+THIS_DIR = os.path.dirname(os.path.realpath(__file__)) + '/'
 
-
-THIS_DIR = 'experiments/spectrogram_mlp/'
 
 def main():
     ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv_brt.yaml')

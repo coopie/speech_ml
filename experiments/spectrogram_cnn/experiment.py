@@ -14,24 +14,22 @@ import math
 import random
 import os
 
-SAMPLE_RATE = 48000
-TIME_WINDOW = 3
-
-
+TIME_WINDOW = 1
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 def main():
-    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv.yaml')
+    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv_brt.yaml')
     print("GETTING SPECTORGRAM DATA...")
-    ttv_data = ttv_to_spectrograms(
+    spectrogram_data = ttv_to_spectrograms(
         ttv_info,
         normalise_waveform=normalise,
         normalise_spectrogram=slice_spectrogram,
-        cache=THIS_DIR + 'ttv'
+        cache=THIS_DIR
     )
 
-    test, train, val = ttv_data
+    test, train, val = ttv_data = learning.split_ttv(spectrogram_data)
+
     test['x']  = np.reshape(test['x'],  (test['x'].shape[0] ,) + (1,) + test['x'].shape[1:] )
     train['x'] = np.reshape(train['x'], (train['x'].shape[0],) + (1,) + train['x'].shape[1:]  )
     val['x']   = np.reshape(val['x'],   (val['x'].shape[0]  ,) + (1,) + val['x'].shape[1:]  )
@@ -40,7 +38,7 @@ def main():
     learning.train(
         make_model,
         ttv_data,
-        THIS_DIR + '_model',
+        THIS_DIR + 'model',
         path_to_results=THIS_DIR,
         generate_callbacks=generate_callbacks,
         number_of_epochs=200,
@@ -140,17 +138,15 @@ def make_model2(**kwargs):
     return model, compile_args
 
 
-def normalise(datum):
-    return datum[:SAMPLE_RATE*TIME_WINDOW]
+def normalise(datum, frequency):
+    return datum[-(frequency*TIME_WINDOW):]
 
-
-def slice_spectrogram(spec):
-    return spec[len(spec)//2 :]
-
-
-def squash(x):
-    # no academia backing this up - just a thought
-    return math.log(abs(x) + 1, 30)
+import code
+def slice_spectrogram(spec, frequencies,**unused):
+    smaller_than_2khz = sum(frequencies < 2000)
+    code.interact(local=locals())
+    # return spec[len(spec)//2 :]
+    return spec[:smaller_than_2khz]
 
 
 if __name__ == '__main__':
