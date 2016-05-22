@@ -291,7 +291,7 @@ def split_ttv(data):
 
     for set_name in ['test', 'train', 'validation']:
         set_data = {}
-        in_set = data[SET] == set_name
+        in_set = data[SET] == np.array(set_name)
         set_data['x'] = np.array([x for x, pick in zip(data[DATA], in_set) if pick])
         set_data['y'] = np.array([y for y, pick in zip(emotions_vectors, in_set) if pick])
         ttv_data.append(set_data)

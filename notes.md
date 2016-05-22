@@ -21,7 +21,12 @@ TODO:
 * caching the ttv data
 * saving rough split in ttv.yaml
 * assert in ttv_to_waveforms and ttv_to_spectrograms that the data is consistent(frequencies all the same etc)
-
+* redoing ravdess - something wrong happened
+* including MAV (if we can)
+* some disgusted sound like surprised and vice versas
+* turing longer snippets into multiple spectrograms/waveforms - this would make ttv also have to display the number of resources form a file - or the files are split - i dont know which is better]
+* rename ttv_to_spectrograms - its confusing now
+* test spectrogram normalising
 
 ### LATER
 * produce a graph at the end for the test data

@@ -53,11 +53,11 @@ def save_to_yaml_file(filepath, o):
 
 
 def get_emotion_from_filename(filename):
-    return path_split(filename)[-1].split('.')[0].split('_')[1]
+    return split_path(filename)[-1].split('.')[0].split('_')[1]
 
 
 def get_emotion_number_from_filename(filename):
-    return EMOTION_NUMBERS[path_split(filename)[-1].split('.')[0].split('_')[1]]
+    return EMOTION_NUMBERS[split_path(filename)[-1].split('.')[0].split('_')[1]]
 
 def filename_to_category_vector(filename):
     emotion_number = get_emotion_number_from_filename(filename)

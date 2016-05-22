@@ -16,20 +16,20 @@ import random
 from scipy.interpolate import interp1d
 
 SAMPLE_RATE = 48000
-TIME_WINDOW = 3
+TIME_WINDOW = 1
 
 
 
-THIS_DIR = 'experiments/RAVDESS_SPEC_MLP/'
+THIS_DIR = 'experiments/spectrogram_mlp/'
 
 def main():
-    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv_berlin_ravdess.yaml')
+    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv_brt.yaml')
     print("GETTING SPECTORGRAM DATA...")
     spectrogram_data = ttv_to_spectrograms(
         ttv_info,
         normalise_waveform=normalise,
         normalise_spectrogram=slice_spectrogram,
-        cache=THIS_DIR + 'ttv'
+        cache=THIS_DIR,
     )
     test, train, validation = ttv_data = learning.split_ttv(spectrogram_data)
 
@@ -49,7 +49,7 @@ def generate_callbacks():
         EarlyStopping(monitor='val_acc', patience=30)
     ]
 
-def make_mlp_model(**kwargs):
+def make_mlp_model(verbosity=1, example_input=np.eye(100), **unused):
 
     compile_args = {
         'loss': "categorical_crossentropy",
@@ -62,10 +62,10 @@ def make_mlp_model(**kwargs):
     top_layer = random.randint(512, 1024) * 5
     second_layer = random.randint(4, 12) ** 2
 
-    if kwargs['verbosity'] >= 1:
+    if verbosity >= 1:
         print('top layer: ', top_layer, 'second layer: ', second_layer)
 
-    model.add(Flatten(input_shape=kwargs['example_input'].shape))
+    model.add(Flatten(input_shape=example_input.shape))
 
     model.add(Dense(top_layer, activation="tanh", init='uniform'))
     model.add(Dropout(0.5))
@@ -78,14 +78,15 @@ def make_mlp_model(**kwargs):
     model.compile(
         **compile_args
     )
+
     return model, compile_args
 
 
 def normalise(datum, frequency, **unused):
-    return datum[:frequency*TIME_WINDOW]
+    return datum[-(frequency*TIME_WINDOW):]
 
 
-def slice_spectrogram(spec):
+def slice_spectrogram(spec, frequencies):
     return spec[int(len(spec) * 0.75) :]
 
 if __name__ == '__main__':

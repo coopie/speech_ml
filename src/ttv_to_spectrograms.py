@@ -6,6 +6,7 @@ import os
 from util import get_cached_data, cache_data
 from data_names import *
 
+
 flag = True
 def default_make_spectrogram(waveform, **spec_args):
     return spectrogram(waveform, **spec_args)
@@ -49,7 +50,7 @@ def ttv_to_spectrograms(ttv_info,
     def make_spectrogram_with_progbar(waveform, frequency):
         fs, ts, s = make_spectrogram(waveform, fs=frequency, **spectrogram_args)
         if normalise_spectrogram is not None:
-            s = normalise_spectrogram(s)
+            s = normalise_spectrogram(s, frequencies=fs)
         pb.add(1)
         return (fs, ts, s)
 
