@@ -91,9 +91,9 @@ def get_cached_data(path):
             else:
                 data.append(datum[:])
 
-        all_data.append(stuff)
+        all_data.append(data)
 
-    return data
+    return all_data
 
 
 def cache_data(path, data):
