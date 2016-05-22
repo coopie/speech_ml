@@ -17,9 +17,9 @@ TEST_TTV_INFO = {
 EXPECTED = (
     np.array(['1_happy_kid_1', '2_happy_kid_1', '3_happy_kid_1']),
     np.array(['test', 'train', 'validation']),
-    np.array([[[1,2],[3,4]], [[10,12], [14,16]], [[27,0], [3,6]]]),
-    np.array([[1,1], [2,2], [3,3]]),
-    np.array([[0,1], [0,1], [0,1]])
+    np.array([[[6,12],[18, 24]], [[30,36], [42,48]], [[54,0], [6,12]]]),
+    np.array([6,6]),
+    np.array([0,1])
 )
 
 def dummy_get_waveforms(ttv_info, *unused, **also_unused):
@@ -27,7 +27,7 @@ def dummy_get_waveforms(ttv_info, *unused, **also_unused):
         np.array(['1_happy_kid_1', '2_happy_kid_1', '3_happy_kid_1']),
         np.array(['test', 'train', 'validation']),
         np.array([[1,2,3,4], [5,6,7,8], [9,0,1,2]]),
-        np.array([1,2,3])
+        np.array(6)
     )
 
 

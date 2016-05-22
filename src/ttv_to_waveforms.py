@@ -47,11 +47,12 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
     waveforms_and_frequencies = [get_data(path) for path in paths]
     waveforms   = np.array([x[1] for x in waveforms_and_frequencies])
 
-    frequencies = np.array([x[0] for x in waveforms_and_frequencies])
+    # All frequencies should be the same
+    frequency = waveforms_and_frequencies[0][0]
 
     ids = np.array([strip_filename(path) for path in paths])
 
-    ttv_data = ids, sets, waveforms, frequencies
+    ttv_data = ids, sets, waveforms, frequency
 
     if cache is not None:
         cache_data(cache + CACHE_EXTENSION, ttv_data)

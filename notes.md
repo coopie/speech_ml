@@ -20,15 +20,13 @@ TODO:
 * more data: berlin, toronto and RML
 * caching the ttv data
 * saving rough split in ttv.yaml
+* assert in ttv_to_waveforms and ttv_to_spectrograms that the data is consistent(frequencies all the same etc)
 
 
 ### LATER
-* clarify naming of ttv_data, ttv_info, ttv
 * produce a graph at the end for the test data
 * Dockerise so others can easily develop (no real way of testing with scientific python packages with travis at the moment, unless docker is used)
 * Turn TODO list into github issues
-* deleting model after each iteration
-* comments in yaml?
 
 ### Would be Cool
 * make the fpython stuff nicer to use (currently in the bin folder of env, setup needs to add it to the folder)

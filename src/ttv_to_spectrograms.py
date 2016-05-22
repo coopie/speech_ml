@@ -14,9 +14,7 @@ CACHE_EXTENSION = '.spectrograms.cache.hdf5'
 
 # from some paper:
 # TODO
-DEFAULT_SPECTROGRAM_ARGS = {
-
-}
+DEFAULT_SPECTROGRAM_ARGS = {}
 
 def ttv_to_spectrograms(ttv_info,
                         normalise_waveform=None,
@@ -55,8 +53,9 @@ def ttv_to_spectrograms(ttv_info,
         pb.add(1)
         return (fs, ts, s)
 
+    frequency = waveform_data[FREQUENCY]
     spectrogram_data = [make_spectrogram_with_progbar(waveform, frequency)
-        for waveform, frequency in zip(waveform_data[WAVEFORM], waveform_data[FREQUENCY])]
+        for waveform in waveform_data[WAVEFORM]]
 
     spectrograms = []
     frequencies = []
@@ -70,8 +69,8 @@ def ttv_to_spectrograms(ttv_info,
         waveform_data[ID],
         waveform_data[SET],
         np.array(spectrograms),
-        np.array(frequencies),
-        np.array(times)
+        np.array(frequencies[0]),
+        np.array(times[0])
     )
 
     if cache is not None:
