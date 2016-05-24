@@ -4,6 +4,7 @@ import numpy as np
 import h5py
 import os
 from scipy.io.wavfile import read
+import posixpath
 from util import cache_data, get_cached_data, filename_to_category_vector
 
 from keras.utils.generic_utils import Progbar
@@ -38,6 +39,8 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
     pb = Progbar(NUM_RESOURCES, verbose=verbosity)
 
     def get_data(path):
+        # to get over OS differnces
+        path =  os.path.join(*path.split(posixpath.sep))
         freq, wave_data = get_waveform_data(path)
         if normalise is not None:
             wave_data = normalise(wave_data, frequency=freq)

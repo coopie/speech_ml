@@ -11,6 +11,9 @@ import os
 from keras.callbacks import ModelCheckpoint, Callback
 from keras.models import model_from_yaml
 from keras.optimizers import get as get_optimizer
+from sklearn.metrics import confusion_matrix
+
+from ttv_util import folded_str
 
 import numpy as np
 from util import mkdir_p, save_to_yaml_file, ttv_yaml_to_dict, filename_to_category_vector
@@ -19,7 +22,7 @@ import warnings
 
 kb = None
 
-def keypress_to_quit():
+def keypress_to_quit(*unused):
     global kb
 
     if kb is None:
@@ -53,7 +56,7 @@ def train(
     """
     TODO: write this
     """
-    callbacks = generate_callbacks()
+    # callbacks = generate_callbacks()
     def log(message, level):
         if verbosity >= level:
             print(message)
@@ -65,7 +68,7 @@ def train(
     model_perf_tracker = None
     if not dry_run:
         model_perf_tracker = CompleteModelCheckpoint(
-            path_to_results + '/' + experiment_name + '_{val_acc:.4f}_{acc:.4f}',
+            os.path.join(path_to_results, experiment_name + '_{val_acc:.4f}_{acc:.4f}'),
             monitor='val_acc',
             save_best_only=True
         )
@@ -73,7 +76,9 @@ def train(
     model = None
     test_data, train_data, validation_data = ttv
 
-    while not end_training():
+    iterations = 0
+    while not end_training(iterations):
+        iterations += 1
         model, compile_args = generate_model(verbosity=verbosity, example_input=test_data['x'][0])
 
         callbacks = generate_callbacks()
@@ -158,11 +163,22 @@ def evaluate_model_on_ttv(model, ttv_data, batch_size, path=False, verbosity=0):
         data, name = set_and_name
         perf_data = {}
         metrics = model.evaluate(data['x'], data['y'], batch_size=batch_size)
-        metrics_names = model.metrics_names
+
+        y_true = np.nonzero(data['y'])[1]
+        print(y_true)
+        # print(y_true)
+        y_pred = model.predict_classes(data['x'])
+        conf_matrix = confusion_matrix(y_true, y_pred)
+
+        metrics.append(conf_matrix)
+        metrics_names = model.metrics_names + ['confusion_matrix']
 
         for metric_name, metric in zip(metrics_names, metrics):
             log((name, metric_name, metric), 1)
-            perf_data[name] = float(metric)
+            if np.size(metric) == 1:
+                perf_data[metric_name] = float(metric)
+            else:
+                perf_data[metric_name] = folded_str(str(metric))
         return perf_data
 
     test_perf, train_perf, validation_perf = list(map(
@@ -183,6 +199,8 @@ def evaluate_model_on_ttv(model, ttv_data, batch_size, path=False, verbosity=0):
             yaml.dump(experiment_data, f, default_flow_style=False)
 
     return experiment_data
+
+
 
 
 def save_experiment_results(model, results,  path):
@@ -232,6 +250,7 @@ class CompleteModelCheckpoint(Callback):
         self.filepath = filepath
         self.save_best_only = save_best_only
         self.path_to_best = None
+
 
         if mode not in ['auto', 'min', 'max']:
             warnings.warn('ModelCheckpoint mode %s is unknown, '
@@ -284,9 +303,14 @@ def save_to_file(filepath, string):
     with open(filepath, 'w') as f:
         f.write(string)
 
-def split_ttv(data):
-    # generates the split from the ttv
-    emotions_vectors = [filename_to_category_vector(ident) for ident in data[ID]]
+
+def split_ttv(data, category=None):
+    # Generates the split from the ttv, category is the name of the emotion you
+    # you want to positively categorise
+    emotions_vectors = None
+    emotions_vectors = [filename_to_category_vector(ident, category=category)
+                        for ident in data[ID]]
+
     ttv_data = []
 
     for set_name in ['test', 'train', 'validation']:

@@ -5,6 +5,7 @@ import os
 import yaml
 import random
 import numpy as np
+import posixpath
 
 DEFAULT_TTV_RATIO = (20, 60, 20)
 
@@ -123,9 +124,13 @@ def get_dataset(corpora):
     """
     # TODO: make filter methods for the files
 
+    def make_posix_path(dirpath, filename):
+        dirpath = dirpath.split(os.sep).join(posixpath.sep)
+        return posixpath.join(dirpath, filename)
+
     wav_files_in_corpora = filter(lambda x: x.endswith('.wav'),
         sum(
-            [list(map(lambda x: os.path.join(corpus, x), os.listdir(corpus))) for corpus in corpora],
+            [list(map(lambda x: make_posix_path(corpus, x), os.listdir(corpus))) for corpus in corpora],
             []
         ),
     )
