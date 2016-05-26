@@ -13,7 +13,7 @@ from keras.models import model_from_yaml
 from keras.optimizers import get as get_optimizer
 from sklearn.metrics import confusion_matrix
 
-from ttv_util import folded_str
+from yaml_util import folded_str
 
 import numpy as np
 from util import mkdir_p, save_to_yaml_file, ttv_yaml_to_dict, filename_to_category_vector
@@ -51,7 +51,8 @@ def train(
         verbosity=1,
         number_of_epochs=100,
         batch_size=100,
-        dry_run=False
+        dry_run=False,
+        class_weight=None
     ):
     """
     TODO: write this
@@ -93,7 +94,8 @@ def train(
             verbose=verbosity,
             validation_data=(validation_data['x'],
             validation_data['y']),
-            callbacks=callbacks
+            callbacks=callbacks,
+            class_weight=class_weight
         )
         log("END OF EPOCHS: BEST VAIDATION ACCURACY: {0:4f}".format(max(history.history['val_acc'])), 1)
         del model
@@ -165,8 +167,6 @@ def evaluate_model_on_ttv(model, ttv_data, batch_size, path=False, verbosity=0):
         metrics = model.evaluate(data['x'], data['y'], batch_size=batch_size)
 
         y_true = np.nonzero(data['y'])[1]
-        print(y_true)
-        # print(y_true)
         y_pred = model.predict_classes(data['x'])
         conf_matrix = confusion_matrix(y_true, y_pred)
 

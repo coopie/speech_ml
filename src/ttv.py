@@ -125,7 +125,7 @@ def get_dataset(corpora):
     # TODO: make filter methods for the files
 
     def make_posix_path(dirpath, filename):
-        dirpath = dirpath.split(os.sep).join(posixpath.sep)
+        dirpath = posixpath.sep.join(dirpath.split(os.sep))
         return posixpath.join(dirpath, filename)
 
     wav_files_in_corpora = filter(lambda x: x.endswith('.wav'),

@@ -10,18 +10,21 @@
 TODO:
 
 ### NOW
-* convolution on sliced data
+* think about spectrograms
+* think about data
+* try training on MAV
+* volume normlaising
 * whitening
+* redoing ravdess - something wrong happened
+* getting more samples from the video of longer datasets
+* Pad out the audio - maybe a random ammount(?)
+
+
 * make init script nicer for someone else to use
 * tests for learning.py - v important
 * tests for CACHING
 * tests for normalising things
-* more robust data store - frequencies should be stored for spectrograms
-* more data: berlin, toronto and RML
-* caching the ttv data
-* saving rough split in ttv.yaml
 * assert in ttv_to_waveforms and ttv_to_spectrograms that the data is consistent(frequencies all the same etc)
-* redoing ravdess - something wrong happened
 * including MAV (if we can)
 * some disgusted sound like surprised and vice versas
 * turing longer snippets into multiple spectrograms/waveforms - this would make ttv also have to display the number of resources form a file - or the files are split - i dont know which is better]
@@ -84,6 +87,13 @@ https://www.youtube.com/watch?v=qv6UVOQ0F44
 * [Berlin Emotional Speech Database](http://emotion-research.net/Members/AstridPaeschke/EmoDB):
 
 * [RAVDESS](http://smartlaboratory.org/ravdess/): Currently in use
+
+* [Surrey Audio-Visual Expressed Emotion (SAVEE) Database](http://kahlan.eps.surrey.ac.uk/savee/Download.html)
+
+* [Vera am Mittag German Audio-Visual Spontaneous Speech Database.](http://emotion-research.net/download/vam/new-emotional-speech-corpus-available)
+
+* Estonian Emotional Speech Corpus http://peeter.eki.ee:5000/
+
 
 #### The ones below I looked at, but were not useful
 
