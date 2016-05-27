@@ -12,21 +12,21 @@ from keras.callbacks import EarlyStopping
 import numpy as np
 import math
 import random
+import os
+from waveform_tools import pad_or_slice
 
-from scipy.interpolate import interp1d
-
-SAMPLE_RATE = 48000
-TIME_WINDOW = 1
+TIME_WINDOW = 3
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 
 def main():
-    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv_brt.yaml')
+    ttv_file = 'ttv_bt.yaml'
+    ttv_info = ttv_yaml_to_dict(THIS_DIR + ttv_file)
     print("GETTING SPECTORGRAM DATA...")
     spectrogram_data = ttv_to_spectrograms(
         ttv_info,
-        normalise_waveform=normalise,
+        normalise_waveform=normalise_waveform,
         normalise_spectrogram=slice_spectrogram,
         cache=THIS_DIR,
     )
@@ -35,17 +35,17 @@ def main():
     learning.train(
         make_mlp_model,
         ttv_data,
-        'mlp_spectrogram_model',
+        'mlp_spectrogram_' + ttv_file.split('.')[0],
         path_to_results=THIS_DIR,
         generate_callbacks=generate_callbacks,
         number_of_epochs=200,
-        dry_run=False,
-        to_terminal=True
+        dry_run=False
+        # to_terminal=True
     )
 
 def generate_callbacks():
     return [
-        EarlyStopping(monitor='val_acc', patience=30)
+        EarlyStopping(monitor='val_acc', patience=10)
     ]
 
 def make_mlp_model(verbosity=1, example_input=np.eye(100), **unused):
@@ -81,12 +81,15 @@ def make_mlp_model(verbosity=1, example_input=np.eye(100), **unused):
     return model, compile_args
 
 
-def normalise(datum, frequency, **unused):
-    return datum[-(frequency*TIME_WINDOW):]
+def normalise_waveform(datum, frequency, **unused):
+    return pad_or_slice(datum, frequency*TIME_WINDOW)
+    # return datum[-(frequency*TIME_WINDOW):]
 
 
-def slice_spectrogram(spec, frequencies):
-    return spec[int(len(spec) * 0.75) :]
+def slice_spectrogram(spec, frequencies,**unused):
+    smaller_than_2khz = sum(frequencies < 2000)
+    return spec[:smaller_than_2khz]
+
 
 if __name__ == '__main__':
     main()

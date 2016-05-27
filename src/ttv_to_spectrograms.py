@@ -15,7 +15,12 @@ CACHE_EXTENSION = '.spectrograms.cache.hdf5'
 
 # from some paper:
 # TODO
-DEFAULT_SPECTROGRAM_ARGS = {}
+DEFAULT_SPECTROGRAM_ARGS = {
+    # 'fs': 16000,
+    # 'window': 16*40, #40ms,
+    'nperseg': 16*40,
+    'noverlap':14*20
+}
 
 def ttv_to_spectrograms(ttv_info,
                         normalise_waveform=None,

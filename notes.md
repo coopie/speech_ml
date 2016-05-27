@@ -70,6 +70,8 @@ where:
   * 20ms window size, 10ms overlap
   * PCA whitening, (80 components)
 * http://research.microsoft.com/pubs/230136/IS140441.PDF
+* http://benanne.github.io/2014/08/05/spotify-cnns.html
+  * used mel scale for frequency and logarithmic amplitude scaling 
 
 
 https://www.youtube.com/watch?v=qv6UVOQ0F44

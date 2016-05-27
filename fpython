@@ -2,13 +2,17 @@
 # in order to run matplotlib, this needs to be used instead of 'python'
 
 # what real Python executable to use
-PYVER=2.7
+PYVER=3.5
 PATHTOPYTHON=/usr/local/bin/
+# PATHTOPYTHON=`which python3`
 PYTHON=${PATHTOPYTHON}python${PYVER}
+# PYTHON=/Library/Frameworks/Python.framework/Versions/3.5/bin/python3
 
 # find the root of the virtualenv, it should be the parent of the dir this script is in
-ENV=`$PYTHON -c "import os; print os.path.abspath(os.path.join(os.path.dirname(\"$0\"), '..'))"`
+ENV=`$PYTHON -c "import os; print(os.path.abspath(os.path.join(os.path.dirname(\"$0\"), 'env')))"`
+# ENV=`$PYTHON -c "import os; print(os.path.abspath(os.path.dirname(\"$0\")))"`
 
 # now run Python with the virtualenv set as Python's HOME
 export PYTHONHOME=$ENV
+
 exec $PYTHON "$@"

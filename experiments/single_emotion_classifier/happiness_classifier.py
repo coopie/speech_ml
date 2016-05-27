@@ -3,7 +3,6 @@ import src_context
 import learning
 from ttv_to_spectrograms import ttv_to_spectrograms
 from util import ttv_yaml_to_dict, EMOTIONS
-from waveform_tools import pad_or_slice
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
@@ -15,67 +14,75 @@ import math
 import random
 import os
 
+TIME_WINDOW = 1
+
 THIS_DIR = os.path.dirname(os.path.realpath(__file__)) + '/'
+# THIS_DIR = 'experiments/single_emotion_classifier/'
 
 def main():
-    ttv_info = ttv_yaml_to_dict(THIS_DIR + '../ttvs/ttv_rb.yaml')
+    ttv_info = ttv_yaml_to_dict(THIS_DIR + 'ttv_berlin.yaml')
     print("GETTING SPECTORGRAM DATA...")
     spectrogram_data = ttv_to_spectrograms(
         ttv_info,
         normalise_waveform=normalise,
         normalise_spectrogram=slice_spectrogram,
-        cache=THIS_DIR
+        cache=THIS_DIR + 'berlin'
     )
 
-    test, train, val = ttv_data = learning.split_ttv(spectrogram_data)
+    emotion = 'happy'
+    test, train, val = ttv_data = learning.split_ttv(spectrogram_data, category=emotion)
 
     test['x']  = np.reshape(test['x'],  (test['x'].shape[0] ,) + (1,) + test['x'].shape[1:] )
     train['x'] = np.reshape(train['x'], (train['x'].shape[0],) + (1,) + train['x'].shape[1:]  )
     val['x']   = np.reshape(val['x'],   (val['x'].shape[0]  ,) + (1,) + val['x'].shape[1:]  )
 
-
     learning.train(
         make_model,
         ttv_data,
-        THIS_DIR + 'model',
+        'model_happy',
         path_to_results=THIS_DIR,
         generate_callbacks=generate_callbacks,
-        number_of_epochs=200
+        number_of_epochs=200,
+        dry_run=False,
+        end_training=lambda x: x>=1,
+        # classification='happy'
+        # to_terminal=True
+        # class_weight={0:10, 1:1}
     )
+
 
 def generate_callbacks():
     return [
         EarlyStopping(monitor='val_acc', patience=20)
     ]
 
-def make_model(**kwargs):
+
+def make_model(example_input=np.array([np.eye(180)]), **kwargs):
     sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     compile_args = {
         'loss': "categorical_crossentropy",
         'optimizer': sgd,
-        'metrics': ['accuracy']
+        'metrics': ['accuracy', 'categorical_crossentropy']
     }
 
     model = Sequential()
     # if kwargs['verbosity'] >= 1:
         # print('top layer: ', top_layer, 'second layer: ', second_layer)
 
-    input_shape = kwargs['example_input'].shape
+    input_shape = example_input.shape
     print('input shape: ', input_shape)
-    window_thickness = input_shape[2] // 10
+    window_thickness = input_shape[2] // 5
 
-    layer = Convolution2D(8, int(input_shape[1] * 0.8), window_thickness, input_shape=input_shape)
-    # layer = Convolution2D(8, input_shape[1], 1, input_shape=input_shape)
-
-
-    # model.add(Convolution2D(1, input_shape[0] -1 , window_thickness, input_shape=input_shape))
+    layer = Convolution2D(1, int(input_shape[1] * 0.8), window_thickness, input_shape=input_shape)
+    # layer = Convolution2D(1, 3, 3, input_shape=input_shape)
     model.add(layer)
     model.add(Activation('relu'))
 
+    model.add(Convolution2D(1, 3, 3))
 
-    model.add(Convolution2D(1, 3, 20))
+    model.add(Convolution2D(1, 3, 3))
     model.add(Activation('relu'))
-    # # model.add(MaxPooling2D(pool_size=(2, 2)))
+    # model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.25))
     #
     # model.add(Convolution2D(1, 10, 10))
@@ -83,31 +90,29 @@ def make_model(**kwargs):
     # # model.add(MaxPooling2D(pool_size=(2, 2)))
     # model.add(Dropout(0.25))
 
-    # add some 1d convolutions?
-
     model.add(Flatten())
+    # print('input shape of top layer:', layer.input_shape)
+    # print('output shape of top layer:', layer.output_shape)
     model.add(Dense(64))
 
 
-    model.add(Dense(len(EMOTIONS)))
+    model.add(Dense(2))
     model.add(Activation('softmax'))
-
-    print('input shape of top layer:', layer.input_shape)
-    print('output shape of top layer:', layer.output_shape)
 
     model.compile(
         **compile_args
     )
+
     return model, compile_args
 
 
 def normalise(datum, frequency):
-    return pad_or_slice(datum, 3*frequency)
+    return datum[-(frequency*TIME_WINDOW):]
 
 
 def slice_spectrogram(spec, frequencies,**unused):
     smaller_than_2khz = sum(frequencies < 2000)
-    return np.log10(spec[:smaller_than_2khz] + 1)
+    return spec[:smaller_than_2khz]
 
 
 if __name__ == '__main__':

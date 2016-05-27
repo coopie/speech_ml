@@ -10,7 +10,6 @@ def pad_or_slice(waveform, width):
     else:
         new_waveform = np.zeros(width, dtype='int16')
         index = int(np.random.rand(1) * (width - len(waveform)))
-        print(index)
         new_waveform[index:index+len(waveform)] = waveform
         return new_waveform
 
