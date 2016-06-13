@@ -4,17 +4,18 @@ import sys
 import os
 import yaml
 import random
-import numpy as np
 import posixpath
 
 DEFAULT_TTV_RATIO = (20, 60, 20)
+
 
 def main():
     make_ttv_yaml(sys.argv[1:-1], sys.argv[-1], deterministic=False)
 
 
 def make_ttv_yaml(corpora, path_to_ttv_file, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
-    """ Creates a test, train, validation from the corpora given and saves it as a YAML filename.
+    """ Create a test, train, validation from the corpora given and saves it as a YAML filename.
+
         Each set will be subject independent, meaning that no one subject can have data in more than one
         set
 
@@ -36,7 +37,7 @@ def make_ttv_yaml(corpora, path_to_ttv_file, ttv_ratio=DEFAULT_TTV_RATIO, determ
 
     test, train, validation = get_for_ttv('paths')
 
-    number_of_files_for_each_set  = list(get_for_ttv('number_of_files'))
+    number_of_files_for_each_set = list(get_for_ttv('number_of_files'))
 
     number_of_subjects_for_each_set = [len(x) for x in get_for_ttv('subjects')]
 
@@ -51,9 +52,11 @@ def make_ttv_yaml(corpora, path_to_ttv_file, ttv_ratio=DEFAULT_TTV_RATIO, determ
     with open(path_to_ttv_file, 'w') as f:
         yaml.dump(dict_for_yaml, f, default_flow_style=False)
 
+
 def make_ttv(dataset, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
     """
-    Returns a dict of test,train,validation sets with information regarding the split (lists of paths to data).
+    Return a dict of test,train,validation sets with information regarding the split (lists of paths to data).
+
     Currently only separates by subjectID.
 
     Prioitises having a diverse set than a well fitting set. This means that the
@@ -78,20 +81,19 @@ def make_ttv(dataset, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
         random.shuffle(sizes_and_ids)
 
     # normalise ttv_ratio
-    ttv_ratio = [x/sum(ttv_ratio) for x in ttv_ratio]
+    ttv_ratio = [x / sum(ttv_ratio) for x in ttv_ratio]
 
     data_sets = {}
 
     for key, ratio in zip(['test', 'train', 'validation'], ttv_ratio):
+
         data_sets[key] = {
             'subjects': [],
             'number_of_files': 0,
-            'expected_size' : (ratio * number_of_resources)
+            'expected_size': (ratio * number_of_resources)
         }
 
 
-
-    last_trip = False
     set_names = list(data_sets.keys())
     i = 0
     while len(sizes_and_ids) > 0:
@@ -114,13 +116,13 @@ def make_ttv(dataset, ttv_ratio=DEFAULT_TTV_RATIO, deterministic=False):
 
 
 def split_list(arr, proportion):
-    split_index = int(len(arr)*proportion)
+    split_index = int(len(arr) * proportion)
     return arr[:split_index], arr[split_index:]
 
 
 def get_dataset(corpora):
     """
-    Returns a dictionary of subjectID -> [path_to_wav_file]
+    Return a dictionary of subjectID -> [path_to_wav_file].
     """
     # TODO: make filter methods for the files
 
