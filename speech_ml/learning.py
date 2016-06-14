@@ -1,26 +1,24 @@
 # library for experiments. Thanks to Timotej Kapus (Github: kren1) for allowing me to
 # take heavy influence from his work on Palpitate
 
-import ttv
-import kbhit
 import code
-from kbhit import KBHit
-from scipy.stats import pearsonr
 import yaml
 import os
-from keras.callbacks import ModelCheckpoint, Callback
+from keras.callbacks import Callback
 from keras.models import model_from_yaml
 from keras.optimizers import get as get_optimizer
 from sklearn.metrics import confusion_matrix
-
-from yaml_util import folded_str
-
-import numpy as np
-from util import mkdir_p, save_to_yaml_file, ttv_yaml_to_dict, filename_to_category_vector
-from data_names import *
 import warnings
+import numpy as np
+
+
+from .kbhit import KBHit
+from .yaml_util import folded_str
+from .util import mkdir_p, save_to_yaml_file, ttv_yaml_to_dict, filename_to_category_vector
+from .data_names import *
 
 kb = None
+
 
 def keypress_to_quit(*unused):
     global kb
@@ -36,8 +34,10 @@ def keypress_to_quit(*unused):
         except UnicodeDecodeError:
             pass
 
+
 def empty_list():
     return []
+
 
 def train(
         generate_model,
@@ -53,9 +53,9 @@ def train(
         batch_size=100,
         dry_run=False,
         class_weight=None
-    ):
+):
     """
-    TODO: write this
+    TODO: write this.
     """
     # callbacks = generate_callbacks()
     def log(message, level):
@@ -203,7 +203,7 @@ def evaluate_model_on_ttv(model, ttv_data, batch_size, path=False, verbosity=0):
 
 
 
-def save_experiment_results(model, results,  path):
+def save_experiment_results(model, results, path):
     yaml_string = model.to_yaml()
     with open(path + '.yaml', 'w') as f:
         f.write(yaml_string)
@@ -214,7 +214,7 @@ def save_experiment_results(model, results,  path):
 
 
 class CompleteModelCheckpoint(Callback):
-    '''Save the model after every epoch.
+    """Save the model after every epoch.
 
     This is a slightly adapted version from the keras library. It also saves the
     yaml of the model config.
@@ -240,7 +240,8 @@ class CompleteModelCheckpoint(Callback):
             this should be `max`, for `val_loss` this should
             be `min`, etc. In `auto` mode, the direction is
             automatically inferred from the name of the monitored quantity.
-    '''
+    """
+
     def __init__(self, filepath, monitor='val_loss', verbose=0,
                  save_best_only=False, mode='auto'):
 

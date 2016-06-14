@@ -1,13 +1,13 @@
-from ttv_to_waveforms import ttv_to_waveforms
 import numpy as np
 from keras.utils.generic_utils import Progbar
 from scipy.signal import spectrogram
 import os
-from util import get_cached_data, cache_data
-from data_names import *
+
+from .util import get_cached_data, cache_data
+from .ttv_to_waveforms import ttv_to_waveforms
+from .data_names import *
 
 
-flag = True
 def default_make_spectrogram(waveform, **spec_args):
     return spectrogram(waveform, **spec_args)
 
@@ -18,9 +18,10 @@ CACHE_EXTENSION = '.spectrograms.cache.hdf5'
 DEFAULT_SPECTROGRAM_ARGS = {
     # 'fs': 16000,
     # 'window': 16*40, #40ms,
-    'nperseg': 16*40,
-    'noverlap':14*20
+    'nperseg': 16 * 40,
+    'noverlap': 14 * 20
 }
+
 
 def ttv_to_spectrograms(ttv_info,
                         normalise_waveform=None,
@@ -30,9 +31,9 @@ def ttv_to_spectrograms(ttv_info,
                         get_waveforms=ttv_to_waveforms,
                         cache=None,
                         verbosity=1):
-    '''
-    TODO: explain caching
-    '''
+    """
+    TODO: explain caching.
+    """
     def log(msg, v):
         if verbosity >= v:
             print(msg)
@@ -88,6 +89,7 @@ def ttv_to_spectrograms(ttv_info,
 
 def map_for_each_set_x(func, ttv):
     return [list(map(func, s['x'])) for s in ttv]
+
 
 def for_each_set(func, ttv):
     return [func(s) for s in ttv]

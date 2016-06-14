@@ -1,22 +1,23 @@
-from ttv_to_waveforms import ttv_to_waveforms
-from data_names import *
 import unittest
 
 import numpy as np
 import os
 
-from util import get_cached_data
+from speech_ml.util import get_cached_data
+from speech_ml.ttv_to_waveforms import ttv_to_waveforms
+from speech_ml.data_names import *
 
 DUMMY_DATA = 'test/dummy_data'
 
 TEST_TTV_INFO = {
-"test" : ['test/dummy_data/1_happy_kid_1.wav', 'test/dummy_data/1_sad_kid_1.wav'],
-"train" : ['test/dummy_data/2_happy_kid_1.wav', 'test/dummy_data/2_sad_kid_1.wav'],
-"validation" : ['test/dummy_data/3_happy_kid_1.wav', 'test/dummy_data/3_sad_kid_1.wav']
+    "test": ['test/dummy_data/1_happy_kid_1.wav', 'test/dummy_data/1_sad_kid_1.wav'],
+    "train": ['test/dummy_data/2_happy_kid_1.wav', 'test/dummy_data/2_sad_kid_1.wav'],
+    "validation": ['test/dummy_data/3_happy_kid_1.wav', 'test/dummy_data/3_sad_kid_1.wav']
 }
 
+
 def dummy_read_data(path):
-    return (60, np.array([1,2,3,4]))
+    return (60, np.array([1, 2, 3, 4]))
 
 
 ids = np.array([filename.split('.')[0]
@@ -25,7 +26,7 @@ ids = np.array([filename.split('.')[0]
 
 sets = np.concatenate((np.repeat('test', 2), np.repeat('train', 2), np.repeat('validation', 2)))
 
-waveforms = np.repeat(np.array([[1,2,3,4]]), 6, axis=0)
+waveforms = np.repeat(np.array([[1, 2, 3, 4]]), 6, axis=0)
 frequency = 60
 
 

@@ -1,24 +1,26 @@
 # Provides methods to get the raw waveforms from a TTV.yaml and normalise them
 
 import numpy as np
-import h5py
 import os
 from scipy.io.wavfile import read
 import posixpath
-from util import cache_data, get_cached_data, filename_to_category_vector
+from .util import cache_data, get_cached_data
 
 from keras.utils.generic_utils import Progbar
 
 CACHE_EXTENSION = '.waveforms.cache.hdf5'
+
 
 def read_wav_file(path_to_wav_file):
     return read(path_to_wav_file)
 
 
 def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, cache=None, verbosity=1):
-    """
-    TODO: explain this better 🐸
-    cache: path to where cached data is, or where the data will be cached after retrieval. Note that the cahe filename will have ".waveforms.cache.hdf5 appended to the name"
+    u"""
+    TODO: explain this better .
+
+    cache: path to where cached data is, or where the data will be cached after retrieval. Note that the cache filename
+    will have ".waveforms.cache.hdf5" appended to the name
     """
     def log(msg, level):
         if level <= verbosity:
@@ -40,7 +42,7 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
 
     def get_data(path):
         # to get over OS differnces
-        path =  os.path.join(*path.split(posixpath.sep))
+        path = os.path.join(*path.split(posixpath.sep))
         freq, wave_data = get_waveform_data(path)
         if normalise is not None:
             wave_data = normalise(wave_data, frequency=freq)
@@ -48,7 +50,7 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
         return (freq, wave_data)
 
     waveforms_and_frequencies = [get_data(path) for path in paths]
-    waveforms   = np.array([x[1] for x in waveforms_and_frequencies])
+    waveforms = np.array([x[1] for x in waveforms_and_frequencies])
 
     # All frequencies should be the same
     frequency = waveforms_and_frequencies[0][0]
@@ -59,7 +61,7 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
 
     if cache is not None:
         cache_data(cache + CACHE_EXTENSION, ttv_data)
-        log('CACHING WAVEFORM TTV DATA FOR LATER USE AT: ' +  cache + CACHE_EXTENSION, 1)
+        log('CACHING WAVEFORM TTV DATA FOR LATER USE AT: ' + cache + CACHE_EXTENSION, 1)
 
     return ttv_data
 

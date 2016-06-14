@@ -1,7 +1,9 @@
 import sys
-from util import get_cached_data
 import matplotlib.pyplot as plt
 import numpy as np
+
+from .util import get_cached_data
+
 
 def main():
     '''

@@ -5,7 +5,8 @@ from keras.utils.generic_utils import Progbar
 
 from sys import argv
 import os
-from util import mkdir_p
+from .util import mkdir_p
+
 
 def main():
     corpora = argv[1:]

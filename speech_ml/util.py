@@ -3,8 +3,9 @@ import errno
 import yaml
 import h5py
 import numpy as np
-from data_names import *
 from os.path import split as split_path
+
+from .data_names import *
 
 
 # echoes the behaviour of mkdir -p
@@ -137,7 +138,7 @@ def cache_data(path, data):
             datum = data[j][i]
             if np.issubdtype(datum.dtype, np.dtype('<U')):
                 datum = [x.encode('ascii') for x in datum]
-            f.create_dataset(name + '/' +  ident, data=datum)
+            f.create_dataset(name + '/' + ident, data=datum)
 
     # frequencies and time are the same for each dataset, these are just stored for debugging
     for name, datum in zip(names[2:], data[2:]):
@@ -150,18 +151,18 @@ def get_cached_ttv_data(path):
     f = h5py.File(path, 'r')
 
     return (
-    {
-        'x': f['test']['x'][:],
-        'y': f['test']['y'][:]
-    },
-    {
-        'x': f['train']['x'][:],
-        'y': f['train']['y'][:],
-    },
-    {
-        'x': f['validation']['x'][:],
-        'y': f['validation']['y'][:],
-    }
+        {
+            'x': f['test']['x'][:],
+            'y': f['test']['y'][:]
+        },
+        {
+            'x': f['train']['x'][:],
+            'y': f['train']['y'][:],
+        },
+        {
+            'x': f['validation']['x'][:],
+            'y': f['validation']['y'][:],
+        }
     )
 
 
