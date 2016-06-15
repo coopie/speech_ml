@@ -4,9 +4,10 @@ import numpy as np
 import os
 from scipy.io.wavfile import read
 import posixpath
-from .util import cache_data, get_cached_data
+from .util import cache_data, get_cached_data, gen_data_from_cache
 
-from keras.utils.generic_utils import Progbar
+# from keras.utils.generic_utils import Progbar
+from tqdm import tqdm
 
 CACHE_EXTENSION = '.waveforms.cache.hdf5'
 
@@ -17,10 +18,12 @@ def read_wav_file(path_to_wav_file):
 
 def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, cache=None, verbosity=1):
     u"""
-    TODO: explain this better .
+    TODO: explain this better 🐸.
 
     cache: path to where cached data is, or where the data will be cached after retrieval. Note that the cache filename
     will have ".waveforms.cache.hdf5" appended to the name
+
+    reading the waveforms is lazily evaluated
     """
     def log(msg, level):
         if level <= verbosity:
@@ -38,7 +41,9 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
 
     NUM_RESOURCES = len(paths)
 
-    pb = Progbar(NUM_RESOURCES, verbose=verbosity)
+    if verbosity > 0:
+        pb = tqdm(total=NUM_RESOURCES)
+
 
     def get_data(path):
         # to get over OS differnces
@@ -46,14 +51,13 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
         freq, wave_data = get_waveform_data(path)
         if normalise is not None:
             wave_data = normalise(wave_data, frequency=freq)
-        pb.add(1)
+        if verbosity > 0:
+            pb.update(1)
         return (freq, wave_data)
 
-    waveforms_and_frequencies = [get_data(path) for path in paths]
-    waveforms = np.array([x[1] for x in waveforms_and_frequencies])
-
-    # All frequencies should be the same
-    frequency = waveforms_and_frequencies[0][0]
+    # to get frequency
+    frequency, _ = get_data(paths[0])
+    waveforms = (get_data(path)[1] for path in paths)
 
     ids = np.array([strip_filename(path) for path in paths])
 
@@ -62,6 +66,10 @@ def ttv_to_waveforms(ttv_info, normalise=None, get_waveform_data=read_wav_file, 
     if cache is not None:
         cache_data(cache + CACHE_EXTENSION, ttv_data)
         log('CACHING WAVEFORM TTV DATA FOR LATER USE AT: ' + cache + CACHE_EXTENSION, 1)
+        # the waveforms generator has been used, so create a generator which pulls data from the file
+        waveforms = gen_data_from_cache(cache + CACHE_EXTENSION)
+        ttv_data = ids, sets, waveforms, frequency
+
 
     return ttv_data
 

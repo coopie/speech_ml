@@ -76,7 +76,7 @@ def filename_to_category_vector(filename, category=None):
         return zeros
 
 
-def get_cached_data(path):
+def get_cached_data(path, instantiated=True):
     f = h5py.File(path, 'r')
 
     kind = path.split('.')[-3]
@@ -87,14 +87,14 @@ def get_cached_data(path):
     elif kind == 'waveforms':
         names = waveform_names
 
-    ids = f[names.pop(0)]
+    ids = f[names[0]]
     ids = np.array([x.decode('UTF-8') for x in ids[:]])
 
     all_data = [ids]
-    for key in names:
+    for key in names[1:]:
 
         data = None
-        if names.index(key) > 1:
+        if names[1:].index(key) > 1:
             data = f[key][()]
 
         else:
@@ -106,9 +106,12 @@ def get_cached_data(path):
                 elif datum.shape == ():
                     data.append(datum[()])
                 else:
-                    data.append(datum[:])
+                    data.append(datum)
 
-        all_data.append(np.array(data))
+        if instantiated:
+            all_data.append(np.array(data))
+        else:
+            all_data.append(data)
 
     return all_data
 
@@ -127,24 +130,45 @@ def cache_data(path, data):
     ids_ascii = [x.encode('ascii') for x in ids]
     f.create_dataset(names[0], data=ids_ascii)
     data = data[1:]
-    names = names[1:]
+    other_names = names[1:]
 
-    i = -1
-    for ident in ids:
-        i += 1
-        j = -1
-        for name in names[:2]:
-            j += 1
-            datum = data[j][i]
+    for i, ident in enumerate(ids):
+        for j, name in enumerate(other_names[:2]):
+            if j != DATA - 1:
+                datum = data[j][i]
+            else:
+                datum = data[j].__next__()
             if np.issubdtype(datum.dtype, np.dtype('<U')):
                 datum = [x.encode('ascii') for x in datum]
             f.create_dataset(name + '/' + ident, data=datum)
 
     # frequencies and time are the same for each dataset, these are just stored for debugging
-    for name, datum in zip(names[2:], data[2:]):
+    for name, datum in zip(other_names[2:], data[2:]):
         f.create_dataset(name, data=datum)
 
     f.close()
+
+
+def gen_data_from_cache(path_to_cache):
+    f = h5py.File(path_to_cache, 'r')
+
+    kind = path_to_cache.split('.')[-3]
+
+    names = None
+    if kind == 'spectrograms':
+        names = spectrogram_names
+    elif kind == 'waveforms':
+        names = waveform_names
+
+    ids = f[names[0]]
+    ids = np.array([x.decode('UTF-8') for x in ids[:]])
+    for id in ids:
+        yield f[names[DATA] + '/' + id]
+
+
+
+#  The functions below are currently not in use
+
 
 
 def get_cached_ttv_data(path):

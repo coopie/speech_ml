@@ -47,11 +47,21 @@ class TestTTVToSpectrogramMethods(unittest.TestCase):
             verbosity=0
         )
 
+        # to instantiate the data generator to a numpy array
+        spectrogram_data = (
+            spectrogram_data[0],
+            spectrogram_data[1],
+            np.array([x for x in spectrogram_data[2]]),
+            spectrogram_data[3],
+            spectrogram_data[4]
+        )
+
 
         for expected, actual in zip(EXPECTED, spectrogram_data):
             self.assertTrue(
                 np.all(expected == actual)
             )
+
 
     def test_caching(self):
         spectrogram_data = ttv_to_spectrograms(
@@ -61,9 +71,26 @@ class TestTTVToSpectrogramMethods(unittest.TestCase):
             verbosity=0,
             cache='test'
         )
+
+        # to instantiate the data generator to a numpy array
+        spectrogram_data = (
+            spectrogram_data[0],
+            spectrogram_data[1],
+            np.array([x for x in spectrogram_data[2]]),
+            spectrogram_data[3],
+            spectrogram_data[4]
+        )
+
         self.assertTrue(os.path.exists('test.spectrograms.cache.hdf5'))
 
         cached = get_cached_data('test.spectrograms.cache.hdf5')
+        cached = (
+            cached[0],
+            cached[1],
+            np.array([x for x in cached[2]]),
+            cached[3],
+            cached[4]
+        )
 
         for expected, actual in zip(EXPECTED, spectrogram_data):
             self.assertTrue(

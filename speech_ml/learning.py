@@ -80,7 +80,7 @@ def train(
     iterations = 0
     while not end_training(iterations):
         iterations += 1
-        model, compile_args = generate_model(verbosity=verbosity, example_input=test_data['x'][0])
+        model, compile_args = generate_model(verbosity=verbosity, example_input=test_data['x'][0], iterations=iterations)
 
         callbacks = generate_callbacks()
         if not dry_run:
@@ -306,7 +306,7 @@ def save_to_file(filepath, string):
 
 
 def split_ttv(data, category=None):
-    # Generates the split from the ttv, category is the name of the emotion you
+    # Generate the split from the ttv, category is the name of the emotion you
     # you want to positively categorise
     emotions_vectors = None
     emotions_vectors = [filename_to_category_vector(ident, category=category)

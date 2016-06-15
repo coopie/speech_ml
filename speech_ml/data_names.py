@@ -1,5 +1,5 @@
 # for naming columns in the DATA
-waveform_names = ['ids', 'sets', 'waveforms', 'frequencies']
+waveform_names = ['ids', 'sets', 'waveforms', 'frequency']
 spectrogram_names = ['ids', 'sets', 'spectrograms', 'frequencies', 'times']
 
 ID = 0

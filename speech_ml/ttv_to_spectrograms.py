@@ -1,9 +1,8 @@
-import numpy as np
-from keras.utils.generic_utils import Progbar
+from tqdm import tqdm
 from scipy.signal import spectrogram
 import os
 
-from .util import get_cached_data, cache_data
+from .util import get_cached_data, cache_data, gen_data_from_cache
 from .ttv_to_waveforms import ttv_to_waveforms
 from .data_names import *
 
@@ -51,38 +50,46 @@ def ttv_to_spectrograms(ttv_info,
     )
 
     NUM_RESOURCES = len(waveform_data[0])
-    pb = Progbar(NUM_RESOURCES, verbose=verbosity)
+    if verbosity > 0:
+        pb = tqdm(total=NUM_RESOURCES)
 
     def make_spectrogram_with_progbar(waveform, frequency):
         fs, ts, s = make_spectrogram(waveform, fs=frequency, **spectrogram_args)
         if normalise_spectrogram is not None:
             s = normalise_spectrogram(s, frequencies=fs)
-        pb.add(1)
+        if verbosity > 0:
+            pb.update(1)
         return (fs, ts, s)
 
     frequency = waveform_data[FREQUENCY]
-    spectrogram_data = [make_spectrogram_with_progbar(waveform, frequency)
-        for waveform in waveform_data[WAVEFORM]]
 
-    spectrograms = []
-    frequencies = []
-    times = []
-    for fs, ts, s in spectrogram_data:
-        spectrograms.append(s)
-        frequencies.append(fs)
-        times.append(ts)
+    spectrograms = (make_spectrogram_with_progbar(waveform, frequency)[-1]
+        for waveform in waveform_data[WAVEFORM])
+
+    # process one waveform to get spectrogram information (frequencies, times) which are the same for all spectrograms
+    frequencies, times, _ = make_spectrogram(waveform_data[WAVEFORM][0], fs=frequency, **spectrogram_args)
 
     spectrogram_data = (
         waveform_data[ID],
         waveform_data[SET],
-        np.array(spectrograms),
-        np.array(frequencies[0]),
-        np.array(times[0])
+        spectrograms,
+        frequencies,
+        times
     )
 
     if cache is not None:
         log('CACHING TTV SPECTORGRAM DATA FOR LATER USE AT: ' + cache + CACHE_EXTENSION, 1)
         cache_data(cache + CACHE_EXTENSION, spectrogram_data)
+        # caching data uses the spectrogram generator
+        spectrograms = gen_data_from_cache(cache + CACHE_EXTENSION)
+        spectrogram_data = (
+            waveform_data[ID],
+            waveform_data[SET],
+            spectrograms,
+            frequencies,
+            times
+        )
+
 
     return spectrogram_data
 

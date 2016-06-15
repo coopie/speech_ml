@@ -45,8 +45,10 @@ class TestTTVToWaveformMethods(unittest.TestCase):
         self.assertTrue(
             np.all(ttv_data[SET] == sets)
         )
+
+        y = np.array([x for x in ttv_data[WAVEFORM]])
         self.assertTrue(
-            np.all(ttv_data[WAVEFORM] == waveforms)
+            np.all(y == waveforms)
         )
 
         self.assertTrue(
@@ -64,16 +66,17 @@ class TestTTVToWaveformMethods(unittest.TestCase):
 
         self.assertTrue(os.path.exists('test.waveforms.cache.hdf5'))
 
-        ids, sets, waveforms, frequencies = get_cached_data('test.waveforms.cache.hdf5')
+        ids, sets, waveforms, frequencies = get_cached_data('test.waveforms.cache.hdf5', instantiated=False)
 
         self.assertTrue(
-            np.all(ttv_data[ID] == ids)
+            np.all(ttv_data[ID] == np.array(ids[:]))
         )
         self.assertTrue(
-            np.all(ttv_data[SET] == sets)
+            np.all(ttv_data[SET] == np.array(sets))
         )
+
         self.assertTrue(
-            np.all(ttv_data[WAVEFORM] == waveforms)
+            np.all(np.array([x for x in ttv_data[WAVEFORM]]) == np.array(waveforms))
         )
 
         self.assertTrue(
