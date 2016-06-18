@@ -8,6 +8,7 @@ import h5py
 import numpy as np
 
 from .util import yaml_to_dict, ttv_yaml_to_dict
+from .lookup_tables import TTVLookupTable
 
 
 class DataSource(object):
@@ -15,13 +16,14 @@ class DataSource(object):
 
     def __getitem__(self, key):
         if isinstance(key, Iterable) and type(key) != str:
-            return (self._process(key) for uri in key)
+            return (self._process(uri) for uri in key)
         else:
             return self._process(key)
 
     @abstractmethod
     def _process(self, ident):
         pass
+
 
 
 class FileDataSource(DataSource):
@@ -53,12 +55,12 @@ class WaveformDataSource(DataSource):
         return self.process_waveform(self.file_source[ident])
 
 
+
 class SpectrogramDataSource(DataSource):
     """Datasource which produces spectrograms from a path to file.
 
     The file source must produce a waveform when given a string id
     """
-
     def __init__(self, waveform_source, process_spectrogram):
         self.waveform_source = waveform_source
         self.process_spectrogram = process_spectrogram
@@ -69,7 +71,6 @@ class SpectrogramDataSource(DataSource):
 
 
 
-# TODO: this with lookup_table implemented
 class ExamplesDataSource(DataSource):
     """Base class for generating training examoples from processed data and metadata"""
     def __init__(self, data_source, make_target):
@@ -85,9 +86,7 @@ class TTVExamplesDataSource(ExamplesDataSource):
         self.ttv = ttv
         self.subject_info_data_source = FileDataSource(subject_info_dir, suffix='.yaml')
 
-        all_users = {**ttv['test'], **ttv['train']}
-        all_users = {**all_users, **ttv['validation']}
-
+        all_users = merge_dicts(ttv['test'], ttv['train'], ttv['validation'])
 
         # invert the map
         uri_to_subjectID = {}
@@ -104,40 +103,65 @@ class TTVExamplesDataSource(ExamplesDataSource):
 
         subjectID = self.uri_to_subjectID[key]
         Y = self.make_target(X, key, subjectID, self.subject_info_data_source)
-        return X,Y
+        return X, Y
 
-        # def _create_lookup_table(self):
-        #     """Create a table which rerturns (resource_name, subjectID)"""
-        #     lookup_table = []
-        #     for data_set in ['train', 'validate', 'test']:
-        #         subjects = self.ttv[data_set]
-        #         for subjectID in subjects:
-        #             uris = subjects[subjectID]
-        #             for uri in uris:
-        #                 lookup_table.append(subjectID, uri)
-        #
-        #     return np.array(lookup_table)
-        # assert type(key) == slice or type(key) == int or isinstance(key, Iterable)
-        # if type(key) == slice or isinstance(key, Iterable):
-        #
-        #     lookup_data = lookup_table[key]
-        #     subjectIDs (x[0] for x in lookup_data)
-        #     uris = (x[1] for x in lookup_data)
-        #
-        #     X = self.data_source[uris]
-        #     if type(key) == slice:
-        #         s = key
-        #         Y = (self.make_target(X[i], subjectID, self.subject_info_dir) for i, y in eumerate(range(s.start, s.stop, s.step)))
-        #     elif isinstance(key, Iterable):
-        #         Y = (self.make_target(X[i], subjectID, self.
-        #         ) for i, y in enumerate(key))
-        #
-        #     return (X, Y)
-        # else:
-        #     X = self.data_source[uri]
-        #     Y = self.make_target
-        #
-        # return self.data_source[]
+
+
+class ArrayLikeDataSource(DataSource):
+
+    """Base clas for ArrayLikeDataSources. These are used as a way of treating the data as if it were one big array."""
+    @abstractmethod
+    def __getitem___(self, key):
+        pass
+
+
+
+class TTVArrayLikeDataSource(ArrayLikeDataSource):
+    """TODO."""
+    def __init__(self, data_source, ttv):
+        self.data_source = data_source
+        self.lookup = TTVLookupTable(ttv, shuffle_in_set=True)
+
+    def __getitem__(self, key):
+        assert type(key) == slice or type(key) == int or (isinstance(key, Iterable) and type(key) != str)
+        return self.data_source[self.lookup[key]]
+
+    def __len__(self):
+        return len(self.lookup)
+
+    def get_set(self, set_name):
+        return SubArrayLikeDataSource(self, *self.lookup.get_set_bounds(set_name))
+
+
+
+
+class SubArrayLikeDataSource(ArrayLikeDataSource):
+    """TODO."""
+    def __init__(self, parent, lower, upper):
+        assert len(parent) >= upper - lower
+
+        self.parent = parent
+        self.lower = lower
+        self.upper = upper
+
+    def __getitem__(self, key):
+        assert type(key) == slice or type(key) == int or (isinstance(key, Iterable) and type(key) != str)
+        if type(key) == int:
+            key += self.lower
+            assert key < self.upper
+            return self.parent[key]
+        elif type(key) == slice:
+            s = key
+            return (self.parent[i + self.lower] for i in slice_to_range(s, len(self)))
+        else:
+            keyarr = key
+            return (self.parent[i + self.lower] for i in keyarr if i + self.lower < self.upper)
+
+        def __len__(self):
+            return self.upper - self.lower
+
+    def __len__(self):
+        return self.upper - self.lower
 
 
 
@@ -161,3 +185,17 @@ class CacheNumericalDataSource(DataSource):
             pass
         else:
             pass
+
+
+def slice_to_range(s, max_value):
+    start = s.start if s.start is not None else 0
+    stop = s.stop if s.stop is not None else max_value
+    step = s.step if s.step is not None else 1
+    return range(start, stop, step)
+
+
+def merge_dicts(*dicts):
+    merged = {}
+    for d in dicts:
+        merged = {**merged, **d}
+    return merged

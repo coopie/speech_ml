@@ -89,18 +89,64 @@ class DataSourcesTests(unittest.TestCase):
 
         examples_ds = TTVExamplesDataSource(data_source, make_target, ttv, subject_info_dir)
 
-        self.assertTrue(
+        self.assertEqual(
             examples_ds['blorp_2'],
             (data_source.data['blorp_2'], 1)
         )
-        self.assertTrue(
+        self.assertEqual(
             examples_ds['blerp_1'],
             (data_source.data['blerp_1'], 2)
         )
-        self.assertTrue(
+        self.assertEqual(
             examples_ds['shlerp_322'],
             (data_source.data['shlerp_322'], 3)
         )
+
+
+    def test_array_like_data_source(self):
+        dummy_data_source = DummyDataSource()
+        subject_info_dir = os.path.join('test', 'dummy_data', 'metadata')
+        ttv = yaml_to_dict(os.path.join(subject_info_dir, 'dummy_ttv.yaml'))
+
+        array_ds = TTVArrayLikeDataSource(dummy_data_source, ttv)
+
+        self.assertEqual(len(array_ds), 3)
+
+        all_values = np.fromiter((x for x in array_ds[:]), dtype='int16')
+
+        self.assertTrue(
+            np.all(
+                np.in1d(
+                    all_values,
+                    np.array([1, 2, 3])
+                )
+            )
+        )
+
+
+    def test_subarray_like_data_source(self):
+        dummy_data_source = DummyDataSource()
+        subject_info_dir = os.path.join('test', 'dummy_data', 'metadata')
+        ttv = yaml_to_dict(os.path.join(subject_info_dir, 'dummy_ttv.yaml'))
+
+        array_ds = TTVArrayLikeDataSource(dummy_data_source, ttv)
+
+
+        def get_all_values_set(ttv, set_name):
+            data_set = ttv[set_name]
+            uris = []
+            for subjectID in data_set:
+                uris += data_set[subjectID]
+            return uris
+
+        for set_name in ['test', 'train', 'validation']:
+            set_ds = array_ds.get_set(set_name)
+
+            self.assertTrue(len(set_ds), 1)
+            self.assertEqual(
+                [x for x in set_ds[:]],
+                [dummy_data_source[x] for x in get_all_values_set(ttv, set_name)]
+            )
 
 
 
@@ -119,9 +165,9 @@ def dummy_process_spectrograms(waveform):
 class DummyDataSource(DataSource):
     def __init__(self):
         self.data = {
-            'blorp_2': np.eye(2) * 1,
-            'blerp_1': np.eye(2) * 2,
-            'shlerp_322': np.eye(2) * 3
+            'blorp_2': np.array(1) * 1,
+            'blerp_1': np.array(1) * 2,
+            'shlerp_322': np.array(1) * 3
         }
 
     def _process(self, key):
