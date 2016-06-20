@@ -16,7 +16,7 @@ class DataSource(object):
 
     def __getitem__(self, key):
         if isinstance(key, Iterable) and type(key) != str:
-            return (self._process(uri) for uri in key)
+            return [self._process(uri) for uri in key]
         else:
             return self._process(key)
 
@@ -72,15 +72,31 @@ class SpectrogramDataSource(DataSource):
 
 
 class ExamplesDataSource(DataSource):
-    """Base class for generating training examoples from processed data and metadata"""
+    """Base class for generating training examoples from processed data and metadata. Deprecated, but here if it's needed later."""
     def __init__(self, data_source, make_target):
         self.data_source = data_source
         self.make_target = make_target
 
+    def __getitem__(self, key):
+
+        x_and_ys = super().__getitem__(key)
+
+        if isinstance(key, Iterable) and type(key) != str:
+            X = []
+            Y = []
+            for x, y in x_and_ys:
+                X.append(x)
+                Y.append(y)
+            return X, Y
+        else:
+            return x_and_ys
 
 
 class TTVExamplesDataSource(ExamplesDataSource):
-    """Uses ttv and subject information to build a lookuptable"""
+    """Uses ttv and subject information to build a lookuptable.
+
+    Returns the examples requested as two lists: X, Y. X is a list of examples, Y is the corresponding list of targets
+    """
     def __init__(self, data_source, make_target, ttv, subject_info_dir):
         super(TTVExamplesDataSource, self).__init__(data_source, make_target)
         self.ttv = ttv
@@ -108,22 +124,25 @@ class TTVExamplesDataSource(ExamplesDataSource):
 
 
 class ArrayLikeDataSource(DataSource):
-
-    """Base clas for ArrayLikeDataSources. These are used as a way of treating the data as if it were one big array."""
+    """Base clas for ArrayLikeDataSources. These are used as a way of treating the data as if it were one big numpy array."""
     @abstractmethod
     def __getitem___(self, key):
         pass
 
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
 
 
 class TTVArrayLikeDataSource(ArrayLikeDataSource):
-    """TODO."""
+    """Uses a ttv to create a lookup table from uri -> index and vice versa."""
     def __init__(self, data_source, ttv):
         self.data_source = data_source
         self.lookup = TTVLookupTable(ttv, shuffle_in_set=True)
 
     def __getitem__(self, key):
-        assert type(key) == slice or type(key) == int or (isinstance(key, Iterable) and type(key) != str)
+        if type(key) == int:
+            key = [key]
         return self.data_source[self.lookup[key]]
 
     def __len__(self):
@@ -131,8 +150,6 @@ class TTVArrayLikeDataSource(ArrayLikeDataSource):
 
     def get_set(self, set_name):
         return SubArrayLikeDataSource(self, *self.lookup.get_set_bounds(set_name))
-
-
 
 
 class SubArrayLikeDataSource(ArrayLikeDataSource):
@@ -145,8 +162,8 @@ class SubArrayLikeDataSource(ArrayLikeDataSource):
         self.upper = upper
 
     def __getitem__(self, key):
-        assert type(key) == slice or type(key) == int or (isinstance(key, Iterable) and type(key) != str)
         if type(key) == int:
+            key = np.array(key)
             key += self.lower
             assert key < self.upper
             return self.parent[key]
@@ -164,27 +181,74 @@ class SubArrayLikeDataSource(ArrayLikeDataSource):
         return self.upper - self.lower
 
 
+class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
+    CACHE_MAGIC = 322
 
-# TODO
-class CacheNumericalDataSource(DataSource):
-    def __init__(self, cache_name):
-        self.cache = h5py.File(cache_name, 'a')
-        # self.existence_cache = TODO
+    """TODO: this implementation should be nicer (i.e. a wrapper around the class, not inheritance) Fixed size cache"""
+    def __init__(self, data_source, ttv, data_name='data', cache_name='ttv_cache'):
+        super().__init__(data_source, ttv)
+        self.data_name = data_name
+        self.cache = h5py.File(cache_name + '.cache.hdf5', 'a')
+        self.__init_existence_cache()
+
+
+    def __init_existence_cache(self):
+        """creates the lookup to see if a certain index exists in the set"""
+        if len(self.cache) == 0:
+            self.existence_cache = np.zeros(len(self), dtype=bool)
+        else:
+            existence_cache = np.zeros(len(self), dtype=bool)
+            for i, entry in enumerate(self.cache[self.data_name]):
+                existence_cache[i] = np.all(entry != self.CACHE_MAGIC)
+
+            self.existence_cache = existence_cache
+
+
+    def __get_from_data_source(self, key):
+        data = super().__getitem__(key)
+
+
+        if len(self.cache) == 0:
+            example_data = data[0]
+            number_of_samples = len(self)
+            self.cache.create_dataset(self.data_name, data=np.repeat(np.full_like(example_data, self.CACHE_MAGIC), len(self.lookup)))
+
+        self.cache[self.data_name][key] = data
+        self.existence_cache[key] = True
+        return data
+
 
     def __getitem__(self, key):
         if type(key) == slice:
-            s = key
-            indices = np.arange(s.start, s.stop, s.step)
-            indices_in_cache = np.fromiter((i, self._in_cache(i)) for i in range(s.start, s.stop, s.step))
-            if len(indices) == indices_in_cache:
-                return self.cache[s]
-            else:
-                return np.array([])
             # if all in cache, then use slice, else don't
-        elif isinstance(key, Iterable) and type(key) != str:
-            pass
+            start, stop, step = key.start, key.stop, key.step
+
+            in_cache = self.existence_cache[start:stop:step]
+            if np.all(in_cache):
+                return self.cache[self.data_name][start:stop:step]
+            elif np.all(np.logical_not(in_cache)):
+                return self.__get_from_data_source(slice(start, stop, step))
+
+            key = slice_to_range(s, len(self))
+
+        if type(key) == int:
+            key = np.array([key])
+
+        if isinstance(key, Iterable) and type(key) != str:
+            data = []
+
+            for index, in_cache in zip(key, self.existence_cache[key]):
+                if in_cache:
+                    datum = self.cache[self.data_name][index]
+                else:
+                    datum = self.__get_from_data_source(index)
+
+                data.append(datum)
+            return np.array(data)
+
         else:
-            pass
+            raise RuntimeError('key: {} is not compatible with this datasource'.format(str(key)))
+
 
 
 def slice_to_range(s, max_value):

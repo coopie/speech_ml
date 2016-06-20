@@ -43,7 +43,6 @@ class LookupTablesTests(unittest.TestCase):
         start, end = lt.get_set_bounds('train')
 
         uris_in_set = sum((x for x in ttv['train'].values()), [])
-        print(uris_in_set)
 
         self.assertEqual(
             set(lt[start:end]),
