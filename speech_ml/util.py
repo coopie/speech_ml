@@ -1,7 +1,6 @@
 import os
 import errno
 import yaml
-import h5py
 import numpy as np
 from os.path import split as split_path
 

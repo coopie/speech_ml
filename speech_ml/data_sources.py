@@ -213,7 +213,6 @@ class SubArrayLikeDataSource(ArrayLikeDataSource):
 
     def __getitem__(self, key):
         if is_int_like(key):
-            key = np.array(key)
             key += self.lower
             assert key < self.upper
             return self.parent[key]
