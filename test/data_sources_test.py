@@ -45,7 +45,7 @@ class DataSourcesTests(unittest.TestCase):
 
         npt.assert_array_equal(
             np.array([ds[f] for f in filenames]),
-            np.array([dummy_process_waveforms(p) for p in paths])
+            np.array([dummy_process_waveforms(p)[1] for p in paths])
         )
 
 
@@ -69,7 +69,7 @@ class DataSourcesTests(unittest.TestCase):
 
         npt.assert_array_equal(
             np.array([ds[f] for f in filenames]),
-            np.array([dummy_process_spectrograms(dummy_process_waveforms(p)) for p in paths])
+            np.array([dummy_process_spectrograms(dummy_process_waveforms(p)[1])[-1] for p in paths])
         )
 
 
@@ -220,11 +220,16 @@ def dummy_process_waveforms(path):
     filename_split = path.split(os.sep)[-1].split('.')[0].split('_')
     ident = filename_split[0]
     is_happy = filename_split[1] == 'happy'
-    return np.array((int(ident) * 2) + int(is_happy))
+
+    frequency = 123
+
+    return (frequency, np.array([int(ident) * 2]) + int(is_happy))
 
 
-def dummy_process_spectrograms(waveform):
-    return np.eye(2) * waveform
+def dummy_process_spectrograms(waveform, *unused):
+    times = np.array([1, 2])
+    frequencies = np.array([3, 4])
+    return (frequencies, times, np.eye(2) * waveform)
 
 
 class dummyExampleDataSource():

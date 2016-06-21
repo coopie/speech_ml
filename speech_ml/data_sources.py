@@ -6,6 +6,7 @@ from collections import Iterable
 from abc import abstractmethod
 import h5py
 import numpy as np
+from numbers import Integral
 
 from .util import yaml_to_dict, ttv_yaml_to_dict
 from .lookup_tables import TTVLookupTable
@@ -49,10 +50,24 @@ class WaveformDataSource(DataSource):
     def __init__(self, file_source, process_waveform):
         self.file_source = file_source
         self.process_waveform = process_waveform
-
+        self.waveform_frequency = None
+        self.waveform_length = None
 
     def _process(self, ident):
-        return self.process_waveform(self.file_source[ident])
+        frequency, waveform = self.process_waveform(self.file_source[ident])
+
+        if self.waveform_frequency is None and self.waveform_length is None:
+            self.waveform_frequency = frequency
+            print('waveform,  ', waveform)
+            self.waveform_length = len(waveform)
+        else:
+            try:
+                assert frequency == self.waveform_frequency
+                assert len(waveform) == self.waveform_length
+            except Exception as e:
+                e.args += ('Waveform structure not consistent.\n',)
+                raise e
+        return waveform
 
 
 
@@ -64,11 +79,29 @@ class SpectrogramDataSource(DataSource):
     def __init__(self, waveform_source, process_spectrogram):
         self.waveform_source = waveform_source
         self.process_spectrogram = process_spectrogram
+        self.spectrogram_frequencies = None
+        self.spectrogram_times = None
 
 
     def _process(self, key):
-        return self.process_spectrogram(self.waveform_source[key])
+        frequencies, times, spectrogram = self.process_spectrogram(
+            self.waveform_source[key],
+            self.waveform_source.waveform_frequency
+        )
 
+        if self.spectrogram_frequencies is None:
+            self.spectrogram_frequencies = frequencies
+        if self.spectrogram_times is None:
+            self.spectrogram_times = times
+
+        try:
+            assert frequencies.shape == self.spectrogram_frequencies.shape
+            assert times.shape == self.spectrogram_times.shape
+        except Exception as e:
+            e.message += ('Spectrogram shape not consistent.\n',)
+            raise e
+
+        return spectrogram
 
 
 class ExamplesDataSource(DataSource):
@@ -206,12 +239,27 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
 
     def __get_from_data_source(self, key):
         data = super().__getitem__(key)
+        # print('data from source', data)
 
 
         if len(self.cache) == 0:
-            example_data = data[0]
+            # import code
+            # code.interact(local=locals())
+            if isinstance(key, Integral):
+                example_data = data
+            else:
+                example_data = data[0]
             number_of_samples = len(self)
-            self.cache.create_dataset(self.data_name, data=np.repeat(np.full_like(example_data, self.CACHE_MAGIC), len(self.lookup)))
+            self.cache.create_dataset(
+                self.data_name,
+                shape=(number_of_samples,) + example_data.shape,
+                # fillvalue=np.full_like(example_data, self.CACHE_MAGIC)
+                fillvalue=self.CACHE_MAGIC
+            )
+
+            # data=np.repeat(np.full_like(example_data,
+            # self.CACHE_MAGIC),
+            # len(self.lookup))
 
         self.cache[self.data_name][key] = data
         self.existence_cache[key] = True
