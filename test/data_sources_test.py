@@ -159,7 +159,6 @@ class DataSourcesTests(unittest.TestCase):
 
         self.assertEqual(len(array_ds), 3)
 
-        # all_values = np.fromiter((x for x in array_ds[:]), dtype='int16')
         all_values = array_ds[:]
 
         self.assertTrue(

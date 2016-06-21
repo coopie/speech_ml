@@ -44,12 +44,10 @@ EMOTION_NUMBERS = {
 }
 
 
-def ttv_yaml_to_dict(path):
+def yaml_to_dict(path):
     """The naming of this is bad."""
     with open(path, 'r') as f:
         return yaml.load(f.read())
-
-yaml_to_dict = ttv_yaml_to_dict  # Fix for more sane naming
 
 
 def save_to_yaml_file(filepath, o):

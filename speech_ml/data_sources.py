@@ -10,7 +10,7 @@ import h5py
 import numpy as np
 from numbers import Integral
 
-from .util import yaml_to_dict, ttv_yaml_to_dict
+from .util import yaml_to_dict, yaml_to_dict
 from .lookup_tables import TTVLookupTable
 
 

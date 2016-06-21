@@ -2,7 +2,7 @@ import unittest
 import os
 
 from speech_ml.lookup_tables import *
-from speech_ml.util import ttv_yaml_to_dict
+from speech_ml.util import yaml_to_dict
 
 # so that shuffling is deterministic
 import random
@@ -15,7 +15,7 @@ DUMMY_DATA_PATH = os.path.join('test', 'dummy_data', 'metadata')
 class LookupTablesTests(unittest.TestCase):
 
     def test_ttv_lookup_table(self):
-        ttv = ttv_yaml_to_dict(os.path.join(DUMMY_DATA_PATH, 'dummy_ttv.yaml'))
+        ttv = yaml_to_dict(os.path.join(DUMMY_DATA_PATH, 'dummy_ttv.yaml'))
         lt = TTVLookupTable(ttv)
 
         self.assertEqual(
@@ -35,7 +35,7 @@ class LookupTablesTests(unittest.TestCase):
 
 
     def test_ttv_lookup_table_shuffled(self):
-        ttv = ttv_yaml_to_dict(os.path.join(DUMMY_DATA_PATH, 'dummy_ttv.yaml'))
+        ttv = yaml_to_dict(os.path.join(DUMMY_DATA_PATH, 'dummy_ttv.yaml'))
         ttv['train'] = dict((str(i), [str(i)]) for i in range(100))
 
         lt = TTVLookupTable(ttv, shuffle_in_set=True)

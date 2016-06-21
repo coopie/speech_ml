@@ -14,7 +14,7 @@ import numpy as np
 
 from .kbhit import KBHit
 from .yaml_util import folded_str
-from .util import mkdir_p, save_to_yaml_file, ttv_yaml_to_dict
+from .util import mkdir_p, save_to_yaml_file, yaml_to_dict
 from .data_names import *
 
 kb = None
@@ -128,7 +128,7 @@ def train(
 def load_model(path_to_model_dir):
     model = model_from_yaml(open(path_to_model_dir + '/config.yaml').read())
     model.load_weights(path_to_model_dir + '/weights.hdf5')
-    compile_args = ttv_yaml_to_dict(path_to_model_dir + '/compile_args.yaml')
+    compile_args = yaml_to_dict(path_to_model_dir + '/compile_args.yaml')
 
     optimizer = compile_args.pop('optimizer')
     if isinstance(optimizer, dict):
