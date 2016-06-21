@@ -1,11 +1,15 @@
 # taken from: http://stackoverflow.com/questions/6432605/any-yaml-libraries-in-python-that-support-dumping-of-long-strings-as-block-liter
+"""Uttilities for pretty printing to yaml."""
 import yaml
 from yaml.representer import SafeRepresenter
 
 
-class folded_str(str): pass
+class folded_str(str):
+    pass
 
-class literal_str(str): pass
+
+class literal_str(str):
+    pass
 
 
 

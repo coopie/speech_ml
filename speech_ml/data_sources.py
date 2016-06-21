@@ -1,4 +1,6 @@
-"""TODO.
+"""DataSources are a way of creating a data pipeline.
+
+They are used as a way of both describing the transformation of data and computing it.
 """
 
 import os
@@ -13,11 +15,14 @@ from .lookup_tables import TTVLookupTable
 
 
 class DataSource(object):
-    """Base class for all datasources."""
+    """Base class for all datasources.
+
+    Note that the default __getitem__ returns a generator (for lazier evaluation).
+    """
 
     def __getitem__(self, key):
         if isinstance(key, Iterable) and type(key) != str:
-            return [self._process(uri) for uri in key]
+            return (self._process(uri) for uri in key)
         else:
             return self._process(key)
 
@@ -44,7 +49,7 @@ class FileDataSource(DataSource):
 class WaveformDataSource(DataSource):
     """Datasource which produces waveforms from a path to file.
 
-    The file source must produce a path to a wav file when given a string id
+    The file source must produce a path to a sound file when given a string id
     """
 
     def __init__(self, file_source, process_waveform):
@@ -58,7 +63,6 @@ class WaveformDataSource(DataSource):
 
         if self.waveform_frequency is None and self.waveform_length is None:
             self.waveform_frequency = frequency
-            print('waveform,  ', waveform)
             self.waveform_length = len(waveform)
         else:
             try:
@@ -72,9 +76,9 @@ class WaveformDataSource(DataSource):
 
 
 class SpectrogramDataSource(DataSource):
-    """Datasource which produces spectrograms from a path to file.
+    """Datasource which produces spectrograms from a waveform.
 
-    The file source must produce a waveform when given a string id
+    The waveform source must produce a waveform when given a string id (i.e. a WaveformDataSource)
     """
     def __init__(self, waveform_source, process_spectrogram):
         self.waveform_source = waveform_source
@@ -114,7 +118,7 @@ class ExamplesDataSource(DataSource):
 
         x_and_ys = super().__getitem__(key)
 
-        if isinstance(key, Iterable) and type(key) != str:
+        if is_array_like(key):
             X = []
             Y = []
             for x, y in x_and_ys:
@@ -157,9 +161,16 @@ class TTVExamplesDataSource(ExamplesDataSource):
 
 
 class ArrayLikeDataSource(DataSource):
-    """Base clas for ArrayLikeDataSources. These are used as a way of treating the data as if it were one big numpy array."""
+    """Base clas for ArrayLikeDataSources. These are used as a way of treating the data as if it were one big numpy array.
+
+    All calls for __getitem___ in classes inheriting form this should return __instantiated__ data.
+    """
     @abstractmethod
     def __getitem___(self, key):
+        pass
+
+    @abstractmethod
+    def __len__(self):
         pass
 
     def __iter__(self):
@@ -168,15 +179,21 @@ class ArrayLikeDataSource(DataSource):
 
 
 class TTVArrayLikeDataSource(ArrayLikeDataSource):
-    """Uses a ttv to create a lookup table from uri -> index and vice versa."""
+    """Uses a ttv split to create a lookup table from uri -> index and vice versa."""
     def __init__(self, data_source, ttv):
         self.data_source = data_source
         self.lookup = TTVLookupTable(ttv, shuffle_in_set=True)
 
     def __getitem__(self, key):
-        if type(key) == int:
-            key = [key]
-        return self.data_source[self.lookup[key]]
+        if is_int_like(key):
+            return self.data_source[self.lookup[key]]
+        elif is_array_like(key):
+            return [x for x in self.data_source[self.lookup[key]]]
+        elif type(key) == slice:
+            return [x for x in self.data_source[self.lookup[key]]]
+        else:
+            raise RuntimeError('key: {} is not compatible with this datasource'.format(str(key)))
+
 
     def __len__(self):
         return len(self.lookup)
@@ -186,7 +203,7 @@ class TTVArrayLikeDataSource(ArrayLikeDataSource):
 
 
 class SubArrayLikeDataSource(ArrayLikeDataSource):
-    """TODO."""
+    """Only shows a slice of another ArrayLikeDataSource."""
     def __init__(self, parent, lower, upper):
         assert len(parent) >= upper - lower
 
@@ -195,20 +212,22 @@ class SubArrayLikeDataSource(ArrayLikeDataSource):
         self.upper = upper
 
     def __getitem__(self, key):
-        if type(key) == int:
+        if is_int_like(key):
             key = np.array(key)
             key += self.lower
             assert key < self.upper
             return self.parent[key]
         elif type(key) == slice:
             s = key
-            return (self.parent[i + self.lower] for i in slice_to_range(s, len(self)))
-        else:
+            if s.stop is not None:
+                stop = min(len(self), s.stop)
+                s = slice(s.start, stop, s.step)
+            return np.array([self.parent[i + self.lower] for i in slice_to_range(s, len(self))])
+        if is_array_like(key):
             keyarr = key
-            return (self.parent[i + self.lower] for i in keyarr if i + self.lower < self.upper)
-
-        def __len__(self):
-            return self.upper - self.lower
+            return np.array([self.parent[i + self.lower] for i in keyarr if i + self.lower < self.upper])
+        else:
+            raise RuntimeError('key: {} is not compatible with this datasource'.format(str(key)))
 
     def __len__(self):
         return self.upper - self.lower
@@ -216,17 +235,22 @@ class SubArrayLikeDataSource(ArrayLikeDataSource):
 
 class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
     CACHE_MAGIC = 322
+    """
+    Cache computed examples after they are called.
 
-    """TODO: this implementation should be nicer (i.e. a wrapper around the class, not inheritance) Fixed size cache"""
+    If a cache file already exists with the same file name, it will try to use that as a cache, and will break if it's
+    not compatible.
+    """
     def __init__(self, data_source, ttv, data_name='data', cache_name='ttv_cache'):
         super().__init__(data_source, ttv)
         self.data_name = data_name
         self.cache = h5py.File(cache_name + '.cache.hdf5', 'a')
+        if data_name in self.cache:
+            assert len(self.cache[data_name]) == len(self)
         self.__init_existence_cache()
 
 
     def __init_existence_cache(self):
-        """creates the lookup to see if a certain index exists in the set"""
         if len(self.cache) == 0:
             self.existence_cache = np.zeros(len(self), dtype=bool)
         else:
@@ -238,28 +262,19 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
 
 
     def __get_from_data_source(self, key):
-        data = super().__getitem__(key)
-        # print('data from source', data)
-
+        data = np.array(super().__getitem__(key))
 
         if len(self.cache) == 0:
-            # import code
-            # code.interact(local=locals())
-            if isinstance(key, Integral):
+            if is_int_like(key):
                 example_data = data
-            else:
+            elif is_array_like(key) or type(key) == slice:
                 example_data = data[0]
             number_of_samples = len(self)
             self.cache.create_dataset(
                 self.data_name,
                 shape=(number_of_samples,) + example_data.shape,
-                # fillvalue=np.full_like(example_data, self.CACHE_MAGIC)
                 fillvalue=self.CACHE_MAGIC
             )
-
-            # data=np.repeat(np.full_like(example_data,
-            # self.CACHE_MAGIC),
-            # len(self.lookup))
 
         self.cache[self.data_name][key] = data
         self.existence_cache[key] = True
@@ -279,10 +294,10 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
 
             key = slice_to_range(s, len(self))
 
-        if type(key) == int:
+        if is_int_like(key):
             key = np.array([key])
 
-        if isinstance(key, Iterable) and type(key) != str:
+        if is_array_like(key):
             data = []
 
             for index, in_cache in zip(key, self.existence_cache[key]):
@@ -297,6 +312,13 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
         else:
             raise RuntimeError('key: {} is not compatible with this datasource'.format(str(key)))
 
+
+def is_array_like(x):
+    return isinstance(x, Iterable) and type(x) != str
+
+
+def is_int_like(x):
+    return isinstance(x, Integral) or (isinstance(x, np.ndarray) and np.shape(x) == ())
 
 
 def slice_to_range(s, max_value):
