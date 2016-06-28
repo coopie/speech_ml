@@ -20,16 +20,17 @@ from .data_names import *
 kb = None
 
 
-def keypress_to_quit(*unused):
+def keypress_to_quit(key='q', manual_stop=False, *unused):
     global kb
+    if manual_stop:
+        return True
 
     if kb is None:
         kb = KBHit()
 
     while kb.kbhit():
         try:
-            if "q" in kb.getch():
-                print("quiting due to user pressing q")
+            if key in kb.getch():
                 return True
         except UnicodeDecodeError:
             pass
@@ -76,17 +77,20 @@ def train(
             save_best_only=True
         )
 
+    manual_stop = ManualEarlyStopping()
+
     model = None
     example_input = train_gen.data_source[0]
 
     iterations = 0
-    while not end_training(iterations):
+    while not end_training(iterations, manual_stop=manual_stop.stopped):
         iterations += 1
         model, compile_args = generate_model(verbosity=verbosity, example_input=example_input, iterations=iterations)
 
         callbacks = generate_callbacks()
         if not dry_run:
             callbacks.append(model_perf_tracker)
+        callbacks.append(manual_stop)
 
         history = model.fit_generator(
             train_gen,
@@ -296,6 +300,33 @@ class CompleteModelCheckpoint(Callback):
             if self.verbose > 0:
                 print('Epoch %05d: saving model to %s' % (epoch, filepath))
             save_model(filepath, self.model)
+
+
+class ManualEarlyStopping(Callback):
+    """
+    "e" : exit the training completely
+    "r" : stop training this model, and start the next iteration
+    """
+    def __init__(self):
+        super(Callback, self).__init__()
+        self.stopped = False
+
+    def on_epoch_end(self, epoch, logs={}):
+        global kb
+        if kb is None:
+            kb = KBHit()
+
+        while kb.kbhit():
+            try:
+                c = kb.getch()
+                if 'e' in c:
+                    self.model.stop_training = True
+                    self.stopped = True
+                elif 'r' in c:
+                    self.model.stop_training = True
+            except UnicodeDecodeError:
+                pass
+
 
 
 def confusion_matrix_metric(model, data_gen):

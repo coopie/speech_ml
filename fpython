@@ -5,10 +5,10 @@
 PYVER=3.5
 PATHTOPYTHON=/usr/local/bin/
 # PATHTOPYTHON=`which python3`
-PYTHON=${PATHTOPYTHON}python${PYVER}
-# PYTHON=/Library/Frameworks/Python.framework/Versions/3.5/bin/python3
+# PYTHON=${PATHTOPYTHON}python${PYVER}
+PYTHON=/Library/Frameworks/Python.framework/Versions/3.5/bin/python3
 
-# find the root of the virtualenv, it should be the parent of the dir this script is in
+# find the root of the virtualenv
 ENV=`$PYTHON -c "import os; print(os.path.abspath(os.path.join(os.path.dirname(\"$0\"), 'env')))"`
 # ENV=`$PYTHON -c "import os; print(os.path.abspath(os.path.dirname(\"$0\")))"`
 
