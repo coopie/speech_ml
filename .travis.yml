@@ -1,17 +1,11 @@
 language: python
 python:
-  # We don't actually use the Travis Python, but this keeps it organized.
-
+  # We don't actually use the Travis Python, but this keeps it organized by setting TRAVIS_PYTHON_VERSION
   - "3.5"
 install:
   - sudo apt-get update
-  # We do this conditionally because it saves us some downloading if the
-  # version is the same.
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
+
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
@@ -20,7 +14,7 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-  # Replace dep1 dep2 ... with your dependencies
+  # install dependencies here:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy scikit-learn h5py pyyaml nose
   - source activate test-environment
   - python setup.py install

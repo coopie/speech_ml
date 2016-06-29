@@ -10,26 +10,8 @@
 TODO:
 
 ### NOW
-* think about spectrograms
-* think about data
-* try training on MAV
-* volume normlaising
-* whitening
-* redoing ravdess - something wrong happened
-* getting more samples from the video of longer datasets
-* Pad out the audio - maybe a random ammount(?)
-
-
 * make init script nicer for someone else to use
 * tests for learning.py - v important
-* tests for CACHING
-* tests for normalising things
-* assert in ttv_to_waveforms and ttv_to_spectrograms that the data is consistent(frequencies all the same etc)
-* including MAV (if we can)
-* some disgusted sound like surprised and vice versas
-* turing longer snippets into multiple spectrograms/waveforms - this would make ttv also have to display the number of resources form a file - or the files are split - i dont know which is better]
-* rename ttv_to_spectrograms - its confusing now
-* test spectrogram normalising
 
 ### LATER
 * produce a graph at the end for the test data
@@ -71,7 +53,7 @@ where:
   * PCA whitening, (80 components)
 * http://research.microsoft.com/pubs/230136/IS140441.PDF
 * http://benanne.github.io/2014/08/05/spotify-cnns.html
-  * used mel scale for frequency and logarithmic amplitude scaling 
+  * used mel scale for frequency and logarithmic amplitude scaling
 
 
 https://www.youtube.com/watch?v=qv6UVOQ0F44
