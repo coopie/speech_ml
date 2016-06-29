@@ -174,8 +174,8 @@ def evaluate_model_on_ttv(model, ttv_gens, get_metrics=None, path=False, verbosi
         metrics_names = model.metrics_names
         if get_metrics is not None:
             extra_metrics, extra_metrics_names = get_metrics(data_gen, model)
-            metrics.append(extra_metrics)
-            metrics_names.append(extra_metrics_names)
+            metrics. += extra_metrics
+            metrics_names += extra_metrics_names
 
         for metric_name, metric in zip(metrics_names, metrics):
             log((name, metric_name, metric), 1)
@@ -334,7 +334,7 @@ def confusion_matrix_metric(model, data_gen):
     y_true = np.nonzero(data['y'])[1]
     y_pred = model.predict_classes(data['x'])
     conf_matrix = confusion_matrix(y_true, y_pred)
-    return conf_matrix, ['confusion_matrix']
+    return [conf_matrix], ['confusion_matrix']
 
 
 def save_to_file(filepath, string):

@@ -241,11 +241,12 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
     not compatible.
     """
     def __init__(self, data_source, ttv, data_name='data', cache_name='ttv_cache'):
-        super().__init__(data_source, ttv)
-        self.data_name = data_name
         self.cache = h5py.File(cache_name + '.cache.hdf5', 'a')
         if data_name in self.cache:
             assert len(self.cache[data_name]) == len(self)
+
+        super().__init__(data_source, ttv)
+        self.data_name = data_name
         self.__init_existence_cache()
 
 

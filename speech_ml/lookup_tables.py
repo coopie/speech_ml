@@ -5,7 +5,10 @@ Typically this means changing from a uri adress space to a integer adress space.
 
 from abc import abstractmethod
 import numpy as np
+import random
 from random import shuffle
+
+random.seed(1337)
 
 
 class LookupTable(object):
@@ -24,7 +27,7 @@ class LookupTable(object):
 class TTVLookupTable(LookupTable):
     """Use a ttv split to create a lookup table.
 
-    Also exposes slices of the lookup tbale corresponding to different data sets(i.e. test, train, validation sets).
+    Also exposes slices of the lookup table corresponding to different data sets(i.e. test, train, validation sets).
     """
     def __init__(self, ttv, shuffle_in_set=False):
         """Create a table which rerturns"""

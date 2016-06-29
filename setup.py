@@ -10,9 +10,6 @@ setup(
     url='https://github.com/coopie/speech_ml',
     download_url='https://github.com/coopie/speech_ml/archive/master.zip',
     license='MIT',
-    install_requires=['keras', 'pyyaml', 'sklearn', 'docopt', 'tqdm'],
-    extras_require={
-        'h5py': ['h5py'],
-    },
+    install_requires=['keras', 'pyyaml', 'sklearn', 'docopt', 'tqdm', 'h5py'],
     packages=['speech_ml']
 )
