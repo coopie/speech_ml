@@ -14,22 +14,23 @@ import numpy as np
 
 from .kbhit import KBHit
 from .yaml_util import folded_str
-from .util import mkdir_p, save_to_yaml_file, ttv_yaml_to_dict, filename_to_category_vector
+from .util import mkdir_p, save_to_yaml_file, yaml_to_dict
 from .data_names import *
 
 kb = None
 
 
-def keypress_to_quit(*unused):
+def keypress_to_quit(key='q', manual_stop=False, *unused):
     global kb
+    if manual_stop:
+        return True
 
     if kb is None:
         kb = KBHit()
 
     while kb.kbhit():
         try:
-            if "q" in kb.getch():
-                print("quiting due to user pressing q")
+            if key in kb.getch():
                 return True
         except UnicodeDecodeError:
             pass
@@ -40,8 +41,10 @@ def empty_list():
 
 
 def train(
+        train_gen,
+        validation_gen,
+        test_gen,
         generate_model,
-        ttv,
         experiment_name,
         path_to_results='',
         end_training=keypress_to_quit,
@@ -50,9 +53,9 @@ def train(
         to_terminal=False,
         verbosity=1,
         number_of_epochs=100,
-        batch_size=100,
         dry_run=False,
-        class_weight=None
+        class_weight=None,
+        get_metrics=None
 ):
     """
     TODO: write this.
@@ -74,26 +77,28 @@ def train(
             save_best_only=True
         )
 
+    manual_stop = ManualEarlyStopping()
+
     model = None
-    test_data, train_data, validation_data = ttv
+    example_input = train_gen.data_source[0]
 
     iterations = 0
-    while not end_training(iterations):
+    while not end_training(iterations, manual_stop=manual_stop.stopped):
         iterations += 1
-        model, compile_args = generate_model(verbosity=verbosity, example_input=test_data['x'][0], iterations=iterations)
+        model, compile_args = generate_model(verbosity=verbosity, example_input=example_input, iterations=iterations)
 
         callbacks = generate_callbacks()
         if not dry_run:
             callbacks.append(model_perf_tracker)
+        callbacks.append(manual_stop)
 
-        history = model.fit(
-            train_data['x'],
-            train_data['y'],
-            batch_size=batch_size,
+        history = model.fit_generator(
+            train_gen,
+            samples_per_epoch=len(train_gen),
+            validation_data=validation_gen,
+            nb_val_samples=len(validation_gen),
             nb_epoch=number_of_epochs,
             verbose=verbosity,
-            validation_data=(validation_data['x'],
-            validation_data['y']),
             callbacks=callbacks,
             class_weight=class_weight
         )
@@ -112,10 +117,10 @@ def train(
 
         experiment_data = evaluate_model_on_ttv(
             best_model,
-            ttv,
-            batch_size,
+            (test_gen, train_gen, validation_gen),
             path=path_to_best,
-            verbosity=1
+            verbosity=1,
+            get_metrics=get_metrics
         )
         log('EXPERIEMENT ENDED', 1)
 
@@ -127,7 +132,7 @@ def train(
 def load_model(path_to_model_dir):
     model = model_from_yaml(open(path_to_model_dir + '/config.yaml').read())
     model.load_weights(path_to_model_dir + '/weights.hdf5')
-    compile_args = ttv_yaml_to_dict(path_to_model_dir + '/compile_args.yaml')
+    compile_args = yaml_to_dict(path_to_model_dir + '/compile_args.yaml')
 
     optimizer = compile_args.pop('optimizer')
     if isinstance(optimizer, dict):
@@ -154,7 +159,7 @@ def save_model(path, model):
     save_to_yaml_file(path + '/compile_args.yaml', compile_args)
 
 
-def evaluate_model_on_ttv(model, ttv_data, batch_size, path=False, verbosity=0):
+def evaluate_model_on_ttv(model, ttv_gens, get_metrics=None, path=False, verbosity=0):
 
     def log(message, level):
         if verbosity >= level:
@@ -162,16 +167,15 @@ def evaluate_model_on_ttv(model, ttv_data, batch_size, path=False, verbosity=0):
 
     def get_perf(set_and_name):
         # Evaluates a dataset using the metrics that the model uses
-        data, name = set_and_name
+        data_gen, name = set_and_name
         perf_data = {}
-        metrics = model.evaluate(data['x'], data['y'], batch_size=batch_size)
 
-        y_true = np.nonzero(data['y'])[1]
-        y_pred = model.predict_classes(data['x'])
-        conf_matrix = confusion_matrix(y_true, y_pred)
-
-        metrics.append(conf_matrix)
-        metrics_names = model.metrics_names + ['confusion_matrix']
+        metrics = model.evaluate_generator(data_gen, len(data_gen))
+        metrics_names = model.metrics_names
+        if get_metrics is not None:
+            extra_metrics, extra_metrics_names = get_metrics(data_gen, model)
+            metrics. += extra_metrics
+            metrics_names += extra_metrics_names
 
         for metric_name, metric in zip(metrics_names, metrics):
             log((name, metric_name, metric), 1)
@@ -183,7 +187,7 @@ def evaluate_model_on_ttv(model, ttv_data, batch_size, path=False, verbosity=0):
 
     test_perf, train_perf, validation_perf = list(map(
         get_perf,
-        list(zip(ttv_data, ['test', 'train', 'validation']))
+        list(zip(ttv_gens, ['test', 'train', 'validation']))
     ))
     experiment_data = {}
     experiment_data['model'] = path
@@ -192,15 +196,13 @@ def evaluate_model_on_ttv(model, ttv_data, batch_size, path=False, verbosity=0):
         'train': train_perf,
         'validation': validation_perf
     }
-    experiment_data['batch_size'] = batch_size
+
 
     if path is not None:
         with open(path + '/stats.yaml', 'w') as f:
             yaml.dump(experiment_data, f, default_flow_style=False)
 
     return experiment_data
-
-
 
 
 def save_experiment_results(model, results, path):
@@ -300,25 +302,41 @@ class CompleteModelCheckpoint(Callback):
             save_model(filepath, self.model)
 
 
+class ManualEarlyStopping(Callback):
+    """
+    "e" : exit the training completely
+    "r" : stop training this model, and start the next iteration
+    """
+    def __init__(self):
+        super(Callback, self).__init__()
+        self.stopped = False
+
+    def on_epoch_end(self, epoch, logs={}):
+        global kb
+        if kb is None:
+            kb = KBHit()
+
+        while kb.kbhit():
+            try:
+                c = kb.getch()
+                if 'e' in c:
+                    self.model.stop_training = True
+                    self.stopped = True
+                elif 'r' in c:
+                    self.model.stop_training = True
+            except UnicodeDecodeError:
+                pass
+
+
+
+def confusion_matrix_metric(model, data_gen):
+    """A common metric for classification."""
+    y_true = np.nonzero(data['y'])[1]
+    y_pred = model.predict_classes(data['x'])
+    conf_matrix = confusion_matrix(y_true, y_pred)
+    return [conf_matrix], ['confusion_matrix']
+
+
 def save_to_file(filepath, string):
     with open(filepath, 'w') as f:
         f.write(string)
-
-
-def split_ttv(data, category=None):
-    # Generate the split from the ttv, category is the name of the emotion you
-    # you want to positively categorise
-    emotions_vectors = None
-    emotions_vectors = [filename_to_category_vector(ident, category=category)
-                        for ident in data[ID]]
-
-    ttv_data = []
-
-    for set_name in ['test', 'train', 'validation']:
-        set_data = {}
-        in_set = data[SET] == np.array(set_name)
-        set_data['x'] = np.array([x for x, pick in zip(data[DATA], in_set) if pick])
-        set_data['y'] = np.array([y for y, pick in zip(emotions_vectors, in_set) if pick])
-        ttv_data.append(set_data)
-
-    return ttv_data

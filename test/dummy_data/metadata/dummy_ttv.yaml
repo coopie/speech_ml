@@ -1,0 +1,12 @@
+
+test:
+    blerp:
+        - blerp_1
+
+train:
+    blorp:
+        - blorp_2
+
+validation:
+    shlerp:
+        - shlerp_322

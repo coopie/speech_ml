@@ -1,3 +1,5 @@
+# hacky script to quicly look through data
+
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,9 +8,6 @@ from .util import get_cached_data
 
 
 def main():
-    '''
-    TODO: explain this
-    '''
     path_to_data = sys.argv[-1]
     data_type = sys.argv[-2]
     if data_type == '-spec':
