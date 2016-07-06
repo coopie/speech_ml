@@ -8,8 +8,6 @@ import numpy as np
 import random
 from random import shuffle
 
-random.seed(1337)
-
 
 class LookupTable(object):
     """Base class for lookuptables"""
@@ -28,6 +26,8 @@ class TTVLookupTable(LookupTable):
     """Use a ttv split to create a lookup table.
 
     Also exposes slices of the lookup table corresponding to different data sets(i.e. test, train, validation sets).
+
+    The shuffle seed needs to be the same for each lookup creation for the same ttv.
     """
     def __init__(self, ttv, shuffle_in_set=False):
         """Create a table which rerturns"""
@@ -49,6 +49,7 @@ class TTVLookupTable(LookupTable):
             self.__indices_for_sets[data_set] = (start_index, end_index)
 
             if shuffle_in_set:
+                random.seed(1337)
                 shuffle(uris_for_set)
             lookup_table += uris_for_set
 

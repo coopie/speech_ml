@@ -264,8 +264,17 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
             self.existence_cache = np.zeros(len(self), dtype=bool)
         else:
             existence_cache = np.zeros(len(self), dtype=bool)
+
+            example_entry = self.cache[self.data_name][0]
+            data_shape = example_entry.shape
+            # find the tuple needed to adress a scalar in the data
+            scalar_coord = (0,) * len(data_shape)
+
             for i, entry in enumerate(self.cache[self.data_name]):
-                existence_cache[i] = np.all(entry != self.CACHE_MAGIC)
+                # Here we are only checking one element of the entry for a significant speedup. Even though probability
+                # of collision is much higher, the startup time for setting up large caches is significantly improved.
+                # existence_cache[i] = np.all(entry != self.CACHE_MAGIC)
+                existence_cache[i] = entry[scalar_coord] != self.CACHE_MAGIC
 
             self.existence_cache = existence_cache
 
@@ -344,5 +353,5 @@ def slice_to_range(s, max_value):
 def merge_dicts(*dicts):
     merged = {}
     for d in dicts:
-        merged = {**merged, **d}
+        merged.update(d)
     return merged

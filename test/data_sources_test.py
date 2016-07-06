@@ -103,6 +103,7 @@ class DataSourcesTests(unittest.TestCase):
             ([data_source.data[x] for x in ['shlerp_322', 'blerp_1', 'blorp_2']], [3, 2, 1])
         )
 
+
     def test_lambda_data_source(self):
         data_source = DummyDataSource()
 
@@ -217,6 +218,7 @@ class DataSourcesTests(unittest.TestCase):
                 )
             )
         )
+
 
     @classmethod
     def tearDownClass(cls):
