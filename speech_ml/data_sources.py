@@ -108,8 +108,17 @@ class SpectrogramDataSource(DataSource):
         return spectrogram
 
 
+class LambdaDataSource(DataSource):
+    def __init__(self, function, data_source):
+        self.function = function
+        self.data_source = data_source
+
+    def _process(self, ident):
+        return self.function(self.data_source[ident])
+
+
 class ExamplesDataSource(DataSource):
-    """Base class for generating training examoples from processed data and metadata. Deprecated, but here if it's needed later."""
+    """Base class for generating training examples from processed data and metadata. Deprecated, but here if it's needed later."""
     def __init__(self, data_source, make_target):
         self.data_source = data_source
         self.make_target = make_target
@@ -241,11 +250,11 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
     not compatible.
     """
     def __init__(self, data_source, ttv, data_name='data', cache_name='ttv_cache'):
+        super().__init__(data_source, ttv)
         self.cache = h5py.File(cache_name + '.cache.hdf5', 'a')
         if data_name in self.cache:
             assert len(self.cache[data_name]) == len(self)
 
-        super().__init__(data_source, ttv)
         self.data_name = data_name
         self.__init_existence_cache()
 
@@ -292,10 +301,14 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
             elif np.all(np.logical_not(in_cache)):
                 return self.__get_from_data_source(slice(start, stop, step))
 
-            key = slice_to_range(s, len(self))
+            key = slice_to_range(key, len(self))
 
         if is_int_like(key):
-            key = np.array([key])
+            index = key
+            if self.existence_cache[index]:
+                return self.cache[self.data_name][index]
+            else:
+                return self.__get_from_data_source(index)
 
         if is_array_like(key):
             data = []

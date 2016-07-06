@@ -103,6 +103,17 @@ class DataSourcesTests(unittest.TestCase):
             ([data_source.data[x] for x in ['shlerp_322', 'blerp_1', 'blorp_2']], [3, 2, 1])
         )
 
+    def test_lambda_data_source(self):
+        data_source = DummyDataSource()
+
+        lam_ds = LambdaDataSource(lambda x: x + 1, data_source)
+
+        for key in ['blorp_2', 'blerp_1', 'shlerp_322']:
+            self.assertEqual(
+                lam_ds[key],
+                data_source.data[key] + 1
+            )
+
 
     def test_ttv_array_like_data_source(self):
         dummy_data_source = DummyDataSource()
