@@ -205,8 +205,7 @@ class DataSourcesTests(unittest.TestCase):
         )
 
         # now resetting the cache, we shoud get the original results
-        del f['dummy']
-        f['dummy'] = np.repeat(CachedTTVArrayLikeDataSource.CACHE_MAGIC, 3)
+        f['dummy' + CachedTTVArrayLikeDataSource.CACHE_BITARRAY_SUFFIX][:] = False
         array_ds._CachedTTVArrayLikeDataSource__init_existence_cache()
 
         all_values = array_ds[:]
