@@ -7,15 +7,13 @@ import os
 from keras.callbacks import Callback
 from keras.models import model_from_yaml
 from keras.optimizers import get as get_optimizer
-from sklearn.metrics import confusion_matrix
 import warnings
 import numpy as np
-
+from tqdm import trange
 
 from .kbhit import KBHit
 from .yaml_util import folded_str
 from .util import mkdir_p, save_to_yaml_file, yaml_to_dict
-from .data_names import *
 
 kb = None
 
@@ -40,6 +38,10 @@ def empty_list():
     return []
 
 
+def one_iteration(iterations, *args, **kwargs):
+    return iterations >= 1
+
+
 def train(
         train_gen,
         validation_gen,
@@ -47,7 +49,7 @@ def train(
         generate_model,
         experiment_name,
         path_to_results='',
-        end_training=keypress_to_quit,
+        end_training=one_iteration,
         early_stopping=None,
         generate_callbacks=empty_list,
         to_terminal=False,
@@ -60,7 +62,7 @@ def train(
     """
     TODO: write this.
     """
-    # callbacks = generate_callbacks()
+
     def log(message, level):
         if verbosity >= level:
             print(message)
@@ -177,7 +179,25 @@ def evaluate_model_on_ttv(model, ttv_gens, sets=['test', 'train', 'validation'],
         metrics = model.evaluate_generator(data_gen, len(data_gen))
         metrics_names = model.metrics_names
         if get_metrics is not None:
-            extra_metrics, extra_metrics_names = get_metrics(data_gen, model)
+            print('Getting custom metrics')
+            y_true = None
+            y_pred = None
+            samples_seen = 0
+
+            for i in trange(len(data_gen) // data_gen.batch_size):
+                Xs, Ys = next(data_gen)
+                samples_seen += len(Ys)
+                predictions = model.predict_on_batch(Xs)
+
+                if y_true is None and y_pred is None:
+                    y_true = Ys
+                    y_pred = predictions
+                else:
+                    y_true = np.append(y_true, Ys, axis=0)
+                    y_pred = np.append(y_pred, predictions, axis=0)
+
+
+            extra_metrics, extra_metrics_names = get_metrics(y_true, y_pred)
             metrics += extra_metrics
             metrics_names += extra_metrics_names
 
@@ -202,16 +222,6 @@ def evaluate_model_on_ttv(model, ttv_gens, sets=['test', 'train', 'validation'],
             yaml.dump(experiment_data, f, default_flow_style=False)
 
     return experiment_data
-
-
-def save_experiment_results(model, results, path):
-    yaml_string = model.to_yaml()
-    with open(path + '.yaml', 'w') as f:
-        f.write(yaml_string)
-        f.close()
-    with open(path + '_results.yaml', 'w') as f:
-        yaml.dump(results, f, default_flow_style=False)
-    model.save_weights(path + '.h5')
 
 
 class CompleteModelCheckpoint(Callback):
@@ -325,31 +335,6 @@ class ManualEarlyStopping(Callback):
                     self.model.stop_training = True
             except UnicodeDecodeError:
                 pass
-
-
-def one_iteration(iterations, *args, **kwargs):
-    return iterations >= 1
-
-
-def confusion_matrix_metric(data_gen, model):
-    """Note: this can only be used for single label targets."""
-    y_true = None
-    y_pred = None
-    for i in range(len(data_gen)):
-
-        Xs, Ys = next(data_gen)
-        probas = model.predict_on_batch(Xs)
-        predictions = np.argmax(probas, axis=1)
-
-        if y_true is None and y_pred is None:
-            y_true = Ys
-            y_pred = predictions
-        else:
-            y_true = np.append(y_true, Ys, axis=0)
-            y_pred = np.append(y_pred, predictions, axis=0)
-
-    conf_matrix = confusion_matrix(y_true, y_pred)
-    return [conf_matrix], ['confusion_matrix']
 
 
 def save_to_file(filepath, string):
