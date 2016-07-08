@@ -5,7 +5,7 @@ class KerasGenerator(object):
 
     def __init__(self, data_source, batch_size=128):
         """TODO:."""
-        self.data_source = data_source
+        self.data_source_x = data_source
         self.chunk_index = 0
         self.batch_size = batch_size
 
@@ -13,9 +13,29 @@ class KerasGenerator(object):
         if self.chunk_index == len(self):
             self.chunk_index = 0
 
-        x = self.data_source[self.chunk_index:self.chunk_index + self.batch_size]
+        x = self.data_source_x[self.chunk_index:self.chunk_index + self.batch_size]
         self.chunk_index += self.batch_size
         return (x, x)
 
     def __len__(self):
-        return len(self.data_source) - (len(self.data_source) % self.batch_size)
+        """Return how many `next` calls are needed to go thorugh all of the samples."""
+        return len(self.data_source_x) - (len(self.data_source_x) % self.batch_size)
+
+
+class LabeledKerasGenerator(KerasGenerator):
+    """Generator for labeled data."""
+
+    def __init__(self, data_source_x, data_source_y, batch_size=128):
+        assert len(data_source_x) == len(data_source_y)
+
+        super().__init__(data_source_x, batch_size=batch_size)
+        self.data_source_y = data_source_y
+
+    def __next__(self):
+        if self.chunk_index == len(self):
+            self.chunk_index = 0
+
+        x = self.data_source_x[self.chunk_index:self.chunk_index + self.batch_size]
+        y = self.data_source_y[self.chunk_index:self.chunk_index + self.batch_size]
+        self.chunk_index += self.batch_size
+        return (x, y)

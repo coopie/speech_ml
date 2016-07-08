@@ -104,6 +104,18 @@ class DataSourcesTests(unittest.TestCase):
         )
 
 
+    def test_lambda_data_source(self):
+        data_source = DummyDataSource()
+
+        lam_ds = LambdaDataSource(lambda x: x + 1, data_source)
+
+        for key in ['blorp_2', 'blerp_1', 'shlerp_322']:
+            self.assertEqual(
+                lam_ds[key],
+                data_source.data[key] + 1
+            )
+
+
     def test_ttv_array_like_data_source(self):
         dummy_data_source = DummyDataSource()
         subject_info_dir = os.path.join('test', 'dummy_data', 'metadata')
@@ -193,8 +205,7 @@ class DataSourcesTests(unittest.TestCase):
         )
 
         # now resetting the cache, we shoud get the original results
-        del f['dummy']
-        f['dummy'] = np.repeat(CachedTTVArrayLikeDataSource.CACHE_MAGIC, 3)
+        f['dummy' + CachedTTVArrayLikeDataSource.CACHE_BITARRAY_SUFFIX][:] = False
         array_ds._CachedTTVArrayLikeDataSource__init_existence_cache()
 
         all_values = array_ds[:]
@@ -206,6 +217,7 @@ class DataSourcesTests(unittest.TestCase):
                 )
             )
         )
+
 
     @classmethod
     def tearDownClass(cls):

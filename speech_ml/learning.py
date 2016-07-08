@@ -7,15 +7,13 @@ import os
 from keras.callbacks import Callback
 from keras.models import model_from_yaml
 from keras.optimizers import get as get_optimizer
-from sklearn.metrics import confusion_matrix
 import warnings
 import numpy as np
-
+from tqdm import trange
 
 from .kbhit import KBHit
 from .yaml_util import folded_str
 from .util import mkdir_p, save_to_yaml_file, yaml_to_dict
-from .data_names import *
 
 kb = None
 
@@ -40,6 +38,10 @@ def empty_list():
     return []
 
 
+def one_iteration(iterations, *args, **kwargs):
+    return iterations >= 1
+
+
 def train(
         train_gen,
         validation_gen,
@@ -47,7 +49,7 @@ def train(
         generate_model,
         experiment_name,
         path_to_results='',
-        end_training=keypress_to_quit,
+        end_training=one_iteration,
         early_stopping=None,
         generate_callbacks=empty_list,
         to_terminal=False,
@@ -60,7 +62,7 @@ def train(
     """
     TODO: write this.
     """
-    # callbacks = generate_callbacks()
+
     def log(message, level):
         if verbosity >= level:
             print(message)
@@ -80,7 +82,8 @@ def train(
     manual_stop = ManualEarlyStopping()
 
     model = None
-    example_input = train_gen.data_source[0]
+    example_input = train_gen.data_source_x[0]
+    # TODO: example_output
 
     iterations = 0
     while not end_training(iterations, manual_stop=manual_stop.stopped):
@@ -159,7 +162,9 @@ def save_model(path, model):
     save_to_yaml_file(path + '/compile_args.yaml', compile_args)
 
 
-def evaluate_model_on_ttv(model, ttv_gens, get_metrics=None, path=False, verbosity=0):
+def evaluate_model_on_ttv(model, ttv_gens, sets=['test', 'train', 'validation'], get_metrics=None, path=False, verbosity=0):
+
+    assert len(ttv_gens) == len(sets)
 
     def log(message, level):
         if verbosity >= level:
@@ -168,13 +173,32 @@ def evaluate_model_on_ttv(model, ttv_gens, get_metrics=None, path=False, verbosi
     def get_perf(set_and_name):
         # Evaluates a dataset using the metrics that the model uses
         data_gen, name = set_and_name
+        log('Evaluating ' + name, 1)
         perf_data = {}
 
         metrics = model.evaluate_generator(data_gen, len(data_gen))
         metrics_names = model.metrics_names
         if get_metrics is not None:
-            extra_metrics, extra_metrics_names = get_metrics(data_gen, model)
-            metrics. += extra_metrics
+            print('Getting custom metrics')
+            y_true = None
+            y_pred = None
+            samples_seen = 0
+
+            for i in trange(len(data_gen) // data_gen.batch_size):
+                Xs, Ys = next(data_gen)
+                samples_seen += len(Ys)
+                predictions = model.predict_on_batch(Xs)
+
+                if y_true is None and y_pred is None:
+                    y_true = Ys
+                    y_pred = predictions
+                else:
+                    y_true = np.append(y_true, Ys, axis=0)
+                    y_pred = np.append(y_pred, predictions, axis=0)
+
+
+            extra_metrics, extra_metrics_names = get_metrics(y_true, y_pred)
+            metrics += extra_metrics
             metrics_names += extra_metrics_names
 
         for metric_name, metric in zip(metrics_names, metrics):
@@ -185,34 +209,19 @@ def evaluate_model_on_ttv(model, ttv_gens, get_metrics=None, path=False, verbosi
                 perf_data[metric_name] = folded_str(str(metric))
         return perf_data
 
-    test_perf, train_perf, validation_perf = list(map(
+    perfs = list(map(
         get_perf,
-        list(zip(ttv_gens, ['test', 'train', 'validation']))
+        list(zip(ttv_gens, sets))
     ))
     experiment_data = {}
     experiment_data['model'] = path
-    experiment_data['metrics'] = {
-        'test': test_perf,
-        'train': train_perf,
-        'validation': validation_perf
-    }
-
+    experiment_data['metrics'] = dict(zip(sets, perfs))
 
     if path is not None:
         with open(path + '/stats.yaml', 'w') as f:
             yaml.dump(experiment_data, f, default_flow_style=False)
 
     return experiment_data
-
-
-def save_experiment_results(model, results, path):
-    yaml_string = model.to_yaml()
-    with open(path + '.yaml', 'w') as f:
-        f.write(yaml_string)
-        f.close()
-    with open(path + '_results.yaml', 'w') as f:
-        yaml.dump(results, f, default_flow_style=False)
-    model.save_weights(path + '.h5')
 
 
 class CompleteModelCheckpoint(Callback):
@@ -326,15 +335,6 @@ class ManualEarlyStopping(Callback):
                     self.model.stop_training = True
             except UnicodeDecodeError:
                 pass
-
-
-
-def confusion_matrix_metric(model, data_gen):
-    """A common metric for classification."""
-    y_true = np.nonzero(data['y'])[1]
-    y_pred = model.predict_classes(data['x'])
-    conf_matrix = confusion_matrix(y_true, y_pred)
-    return [conf_matrix], ['confusion_matrix']
 
 
 def save_to_file(filepath, string):

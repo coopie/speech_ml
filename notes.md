@@ -1,5 +1,8 @@
 # Notes
 
+ec2-54-196-142-68.compute-1.amazonaws.com
+54.196.142.68
+
 ## for windows:
 1. http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy
 *  get the scipy whl and numpy blas whl whl
