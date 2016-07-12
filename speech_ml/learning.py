@@ -1,4 +1,4 @@
-# library for experiments. Thanks to Timotej Kapus (Github: kren1) for allowing me to
+    # library for experiments. Thanks to Timotej Kapus (Github: kren1) for allowing me to
 # take heavy influence from his work on Palpitate
 
 import code
@@ -152,11 +152,17 @@ def load_model(path_to_model_dir):
     return model
 
 
-def build_model_from_config(config, weights, number_of_layers, verbosity=1):
-    """Build a model from a model snapshot up to `number_of_layers` layers."""
+def build_model_from_config(config, weights, cutoff_layer_name=None, number_of_layers=None, verbosity=1):
+    """Build a model from a model snapshot up to `number_of_layers` layers, or `cutoff_layer_name` is reached.
+
+    Note that this currently only works for convolutional architectures
+    """
     def log(level, *message):
         if verbosity >= level:
             print(message)
+
+    if cutoff_layer_name is None and number_of_layers is None:
+        raise RuntimeError('You must either name a cutoff layer or the number of layers to cut to')
 
     layers_config = config['config']['layers']
 
@@ -167,17 +173,23 @@ def build_model_from_config(config, weights, number_of_layers, verbosity=1):
 
     log(1, 'after init:', model.get_shape())
 
+    if number_of_layers is None:
+        number_of_layers = float('inf')
+
     for i, layer_config in enumerate(layers_config[1:]):
         if i >= number_of_layers:
             break
-        else:
-            # load the weights from the hdf5 file
-            class_name = layer_config['class_name']
-            if class_name.startswith('Convolution'):
-                layer_config['config']['weights'] = [weights[layer_config['name']][w][:] for w in weights[layer_config['name']]]
 
-            model = layer_from_config(layer_config)(model)
-            log(1, 'shape:', model.get_shape())
+        # load the weights from the hdf5 file
+        class_name = layer_config['class_name']
+        if class_name.startswith('Convolution'):
+            layer_config['config']['weights'] = [weights[layer_config['name']][w][:] for w in weights[layer_config['name']]]
+
+        model = layer_from_config(layer_config)(model)
+        if layer_config['name'] == cutoff_layer_name:
+            break
+        log(1, 'shape:', model.get_shape())
+
 
     return model, input_img
 
