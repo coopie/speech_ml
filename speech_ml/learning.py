@@ -4,12 +4,16 @@
 import code
 import yaml
 import os
+import warnings
+import numpy as np
+from collections import Iterable
+from tqdm import trange
+
 from keras.callbacks import Callback
 from keras.models import model_from_yaml
 from keras.optimizers import get as get_optimizer
-import warnings
-import numpy as np
-from tqdm import trange
+from keras.utils.layer_utils import layer_from_config
+from keras.layers import Input
 
 from .kbhit import KBHit
 from .yaml_util import folded_str
@@ -148,6 +152,36 @@ def load_model(path_to_model_dir):
     return model
 
 
+def build_model_from_config(config, weights, number_of_layers, verbosity=1):
+    """Build a model from a model snapshot up to `number_of_layers` layers."""
+    def log(level, *message):
+        if verbosity >= level:
+            print(message)
+
+    layers_config = config['config']['layers']
+
+    log(1, 'getting first layer')
+    input_layer = layer_from_config(layers_config[0])
+    input_img = Input(input_layer.input_shape[1:])
+    model = input_img
+
+    log(1, 'after init:', model.get_shape())
+
+    for i, layer_config in enumerate(layers_config[1:]):
+        if i >= number_of_layers:
+            break
+        else:
+            # load the weights from the hdf5 file
+            class_name = layer_config['class_name']
+            if class_name.startswith('Convolution'):
+                layer_config['config']['weights'] = [weights[layer_config['name']][w][:] for w in weights[layer_config['name']]]
+
+            model = layer_from_config(layer_config)(model)
+            log(1, 'shape:', model.get_shape())
+
+    return model, input_img
+
+
 def save_model(path, model):
     metrics = model.metrics_names.copy()
     metrics.remove('loss')
@@ -179,7 +213,7 @@ def evaluate_model_on_ttv(model, ttv_gens, sets=['test', 'train', 'validation'],
         metrics = model.evaluate_generator(data_gen, len(data_gen))
         metrics_names = model.metrics_names
         if get_metrics is not None:
-            print('Getting custom metrics')
+            log('Getting custom metrics', 1)
             y_true = None
             y_pred = None
             samples_seen = 0
@@ -202,11 +236,20 @@ def evaluate_model_on_ttv(model, ttv_gens, sets=['test', 'train', 'validation'],
             metrics_names += extra_metrics_names
 
         for metric_name, metric in zip(metrics_names, metrics):
-            log((name, metric_name, metric), 1)
-            if np.size(metric) == 1:
-                perf_data[metric_name] = float(metric)
-            else:
-                perf_data[metric_name] = folded_str(str(metric))
+            def log_metric(m, m_name):
+                if isinstance(m, dict):
+                    log(str(m_name) + ': ', 1)
+                    for key, value in m.items():
+                        log_metric(value, key)
+                elif isinstance(m, tuple):
+                    log_metric(list(m), m_name)
+                elif np.size(m) <= 64:  # don't log massive metrics (e.g. roc curves)
+                    log((m_name, m), 1)
+                else:
+                    log((m_name, 'TOO BIG TO PRINT'), 1)
+            log_metric(metric, metric_name)
+            perf_data[metric_name] = format_for_hr_yaml(metric)
+
         return perf_data
 
     perfs = list(map(
@@ -340,3 +383,17 @@ class ManualEarlyStopping(Callback):
 def save_to_file(filepath, string):
     with open(filepath, 'w') as f:
         f.write(string)
+
+
+def format_for_hr_yaml(metric):
+    """Used so that the metrics from model evaluation are in a human readable format."""
+    if isinstance(metric, np.ndarray) and np.size(metric) == 1:
+        return float(metric)
+    elif isinstance(metric, dict):
+        return {label: format_for_hr_yaml(x) for label, x in metric.items()}
+    elif isinstance(metric, np.ndarray):
+        return folded_str(str(metric))
+    elif isinstance(metric, Iterable):
+        return [format_for_hr_yaml(x) for x in metric]
+    else:
+        return folded_str(str(metric))
