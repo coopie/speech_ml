@@ -1,7 +1,8 @@
-    # library for experiments. Thanks to Timotej Kapus (Github: kren1) for allowing me to
-# take heavy influence from his work on Palpitate
+"""Library for experiments.
 
-import code
+Thanks to Timotej Kapus (Github: kren1) for allowing me to
+take heavy influence from his work on Palpitate
+"""
 import yaml
 import os
 import warnings
@@ -42,26 +43,18 @@ def empty_list():
     return []
 
 
-def one_iteration(iterations, *args, **kwargs):
-    return iterations >= 1
-
-
 def train(
         train_gen,
         validation_gen,
-        test_gen,
         generate_model,
         experiment_name,
         path_to_results='',
-        end_training=one_iteration,
         early_stopping=None,
         generate_callbacks=empty_list,
-        to_terminal=False,
         verbosity=1,
         number_of_epochs=100,
         dry_run=False,
         class_weight=None,
-        get_metrics=None
 ):
     """
     TODO: write this.
@@ -71,11 +64,6 @@ def train(
         if verbosity >= level:
             print(message)
 
-    if dry_run is True and to_terminal is True:
-        warnings.warn('Warning: cannot finish to terminal if you aren\'t saving models')
-        to_terminal = False
-
-    model_perf_tracker = None
     if not dry_run:
         model_perf_tracker = CompleteModelCheckpoint(
             os.path.join(path_to_results, experiment_name + '_{val_acc:.4f}_{acc:.4f}'),
@@ -85,55 +73,33 @@ def train(
 
     manual_stop = ManualEarlyStopping()
 
-    model = None
     example_input = train_gen.data_source_x[0]
     # TODO: example_output
 
-    iterations = 0
-    while not end_training(iterations, manual_stop=manual_stop.stopped):
-        iterations += 1
-        model, compile_args = generate_model(verbosity=verbosity, example_input=example_input, iterations=iterations)
+    model, compile_args = generate_model(verbosity=verbosity, example_input=example_input)
 
-        callbacks = generate_callbacks()
-        if not dry_run:
-            callbacks.append(model_perf_tracker)
-        callbacks.append(manual_stop)
-
-        history = model.fit_generator(
-            train_gen,
-            samples_per_epoch=len(train_gen),
-            validation_data=validation_gen,
-            nb_val_samples=len(validation_gen),
-            nb_epoch=number_of_epochs,
-            verbose=verbosity,
-            callbacks=callbacks,
-            class_weight=class_weight
-        )
-        log("END OF EPOCHS: BEST VAIDATION ACCURACY: {0:4f}".format(max(history.history['val_acc'])), 1)
-        del model
-
-    log('TRAINING ENDED, GETTING TEST SET RESULTS', 1)
-
-    best_model = None
+    callbacks = generate_callbacks()
     if not dry_run:
+        callbacks.append(model_perf_tracker)
+    callbacks.append(manual_stop)
 
+    model.fit_generator(
+        train_gen,
+        samples_per_epoch=len(train_gen),
+        validation_data=validation_gen,
+        nb_val_samples=len(validation_gen),
+        nb_epoch=number_of_epochs,
+        verbose=verbosity,
+        callbacks=callbacks,
+        class_weight=class_weight
+    )
+
+    if not dry_run:
         path_to_best = model_perf_tracker.path_to_best
         log('LOADING BEST MODEL', 1)
         best_model = load_model(path_to_best)
         log('LOADED', 1)
-
-        experiment_data = evaluate_model_on_ttv(
-            best_model,
-            (test_gen, train_gen, validation_gen),
-            path=path_to_best,
-            verbosity=1,
-            get_metrics=get_metrics
-        )
-        log('EXPERIEMENT ENDED', 1)
-
-    if to_terminal:
-        os.system('reset')
-        code.interact(local=locals())
+        return best_model
 
 
 def load_model(path_to_model_dir):

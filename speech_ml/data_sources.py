@@ -115,58 +115,6 @@ class LambdaDataSource(DataSource):
         return self.function(self.data_source[ident])
 
 
-class ExamplesDataSource(DataSource):
-    """Base class for generating training examples from processed data and metadata. Deprecated, but here if it's needed later."""
-    def __init__(self, data_source, make_target):
-        self.data_source = data_source
-        self.make_target = make_target
-
-    def __getitem__(self, key):
-
-        x_and_ys = super().__getitem__(key)
-
-        if is_array_like(key):
-            X = []
-            Y = []
-            for x, y in x_and_ys:
-                X.append(x)
-                Y.append(y)
-            return X, Y
-        else:
-            return x_and_ys
-
-
-class TTVExamplesDataSource(ExamplesDataSource):
-    """Uses ttv and subject information to build a lookuptable.
-
-    Returns the examples requested as two lists: X, Y. X is a list of examples, Y is the corresponding list of targets
-    """
-    def __init__(self, data_source, make_target, ttv, subject_info_dir):
-        super(TTVExamplesDataSource, self).__init__(data_source, make_target)
-        self.ttv = ttv
-        self.subject_info_data_source = FileDataSource(subject_info_dir, suffix='.yaml')
-
-        all_users = merge_dicts(ttv['test'], ttv['train'], ttv['validation'])
-
-        # invert the map
-        uri_to_subjectID = {}
-        for userID in all_users:
-            resources = all_users[userID]
-            for resourceID in resources:
-                uri_to_subjectID[resourceID] = userID
-
-        self.uri_to_subjectID = uri_to_subjectID
-
-
-    def _process(self, key):
-        X = self.data_source[key]
-
-        subjectID = self.uri_to_subjectID[key]
-        Y = self.make_target(X, key, subjectID, self.subject_info_data_source)
-        return X, Y
-
-
-
 class ArrayLikeDataSource(DataSource):
     """Base clas for ArrayLikeDataSources. These are used as a way of treating the data as if it were one big numpy array.
 

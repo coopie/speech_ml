@@ -73,37 +73,6 @@ class DataSourcesTests(unittest.TestCase):
         )
 
 
-    def test_ttv_examples_generator(self):
-        data_source = DummyDataSource()
-
-        def make_target(X, key, subjectID, subject_info_data_source):
-            metadata = yaml_to_dict(subject_info_data_source[subjectID])
-            return metadata['legs']
-
-
-        subject_info_dir = os.path.join('test', 'dummy_data', 'metadata')
-        ttv = yaml_to_dict(os.path.join(subject_info_dir, 'dummy_ttv.yaml'))
-
-        examples_ds = TTVExamplesDataSource(data_source, make_target, ttv, subject_info_dir)
-
-        self.assertEqual(
-            examples_ds['blorp_2'],
-            (data_source.data['blorp_2'], 1)
-        )
-        self.assertEqual(
-            examples_ds['blerp_1'],
-            (data_source.data['blerp_1'], 2)
-        )
-        self.assertEqual(
-            examples_ds['shlerp_322'],
-            (data_source.data['shlerp_322'], 3)
-        )
-        self.assertEqual(
-            examples_ds[['shlerp_322', 'blerp_1', 'blorp_2']],
-            ([data_source.data[x] for x in ['shlerp_322', 'blerp_1', 'blorp_2']], [3, 2, 1])
-        )
-
-
     def test_lambda_data_source(self):
         data_source = DummyDataSource()
 
@@ -156,6 +125,7 @@ class DataSourcesTests(unittest.TestCase):
             set_ds = array_ds.get_set(set_name)
 
             self.assertTrue(len(set_ds), 1)
+
             self.assertEqual(
                 [x for x in set_ds[:]],
                 [dummy_data_source[x] for x in get_all_values_set(ttv, set_name)]

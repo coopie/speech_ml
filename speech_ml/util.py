@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import errno
 import yaml
@@ -49,3 +50,7 @@ def yaml_to_dict(path):
 def save_to_yaml_file(filepath, o):
     with open(filepath, 'w') as f:
         yaml.dump(o, f, default_flow_style=False)
+
+
+def numpy_string_to_array(numpy_str):
+    return np.array(numpy_str[1:-1].split(), dtype=float)
