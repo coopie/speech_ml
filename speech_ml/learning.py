@@ -1,7 +1,4 @@
 """Library for experiments.
-
-Thanks to Timotej Kapus (Github: kren1) for allowing me to
-take heavy influence from his work on Palpitate
 """
 import yaml
 import os
@@ -10,11 +7,12 @@ import numpy as np
 from collections import Iterable
 from tqdm import trange
 
-from keras.callbacks import Callback
+from keras.callbacks import Callback, ModelCheckpoint
 from keras.models import model_from_yaml
 from keras.optimizers import get as get_optimizer
 from keras.utils.layer_utils import layer_from_config
 from keras.layers import Input
+
 
 from .kbhit import KBHit
 from .yaml_util import folded_str
@@ -65,9 +63,9 @@ def train(
             print(message)
 
     if not dry_run:
-        model_perf_tracker = CompleteModelCheckpoint(
+        model_perf_tracker = ModelCheckpoint(
             os.path.join(path_to_results, experiment_name + '_{val_acc:.4f}_{acc:.4f}'),
-            monitor='val_acc',
+            monitor='val_loss',
             save_best_only=True
         )
 
@@ -75,8 +73,14 @@ def train(
 
     example_input = train_gen.data_source_x[0]
     # TODO: example_output
+    batch_size = train_gen.batch_size
 
-    model, compile_args = generate_model(verbosity=verbosity, example_input=example_input)
+
+    model, compile_args = generate_model(
+        verbosity=verbosity,
+        example_input=example_input,
+        batch_size=batch_size
+    )
 
     callbacks = generate_callbacks()
     if not dry_run:
@@ -94,15 +98,9 @@ def train(
         class_weight=class_weight
     )
 
-    if not dry_run:
-        path_to_best = model_perf_tracker.path_to_best
-        log('LOADING BEST MODEL', 1)
-        best_model = load_model(path_to_best)
-        log('LOADED', 1)
-        return best_model
 
-
-def load_model(path_to_model_dir):
+def load_model_old(path_to_model_dir):
+    warnings.warn('`load_model` called. This is a deprected function!')
     model = model_from_yaml(open(path_to_model_dir + '/config.yaml').read())
     model.load_weights(path_to_model_dir + '/weights.hdf5')
     compile_args = yaml_to_dict(path_to_model_dir + '/compile_args.yaml')
@@ -161,6 +159,7 @@ def build_model_from_config(config, weights, cutoff_layer_name=None, number_of_l
 
 
 def save_model(path, model):
+    warnings.warn('`save_model` called. This is a deprected function!')
     metrics = model.metrics_names.copy()
     metrics.remove('loss')
     compile_args = {
@@ -175,7 +174,7 @@ def save_model(path, model):
 
 
 def evaluate_model_on_ttv(model, ttv_gens, sets=['test', 'train', 'validation'], get_metrics=None, path=False, verbosity=0):
-
+    warnings.warn('`evaluate_model_on_ttv` called. This is a deprected function!')
     assert len(ttv_gens) == len(sets)
 
     def log(message, level):
@@ -243,93 +242,6 @@ def evaluate_model_on_ttv(model, ttv_gens, sets=['test', 'train', 'validation'],
             yaml.dump(experiment_data, f, default_flow_style=False)
 
     return experiment_data
-
-
-class CompleteModelCheckpoint(Callback):
-    """Save the model after every epoch.
-
-    This is a slightly adapted version from the keras library. It also saves the
-    yaml of the model config.
-
-    `filepath` can contain named formatting options,
-    which will be filled the value of `epoch` and
-    keys in `logs` (passed in `on_epoch_end`).
-    For example: if `filepath` is `weights.{epoch:02d}-{val_loss:.2f}.hdf5`,
-    then multiple files will be save with the epoch number and
-    the validation loss.
-    # Arguments
-        filepath: string, path to save the model file.
-        monitor: quantity to monitor.
-        verbose: verbosity mode, 0 or 1.
-        save_best_only: if `save_best_only=True`,
-            the latest best model according to
-            the validation loss will not be overwritten.
-        mode: one of {auto, min, max}.
-            If `save_best_only=True`, the decision
-            to overwrite the current save file is made
-            based on either the maximization or the
-            minization of the monitored. For `val_acc`,
-            this should be `max`, for `val_loss` this should
-            be `min`, etc. In `auto` mode, the direction is
-            automatically inferred from the name of the monitored quantity.
-    """
-
-    def __init__(self, filepath, monitor='val_loss', verbose=0,
-                 save_best_only=False, mode='auto'):
-
-        super(Callback, self).__init__()
-        self.monitor = monitor
-        self.verbose = verbose
-        self.filepath = filepath
-        self.save_best_only = save_best_only
-        self.path_to_best = None
-
-
-        if mode not in ['auto', 'min', 'max']:
-            warnings.warn('ModelCheckpoint mode %s is unknown, '
-                          'fallback to auto mode.' % (mode),
-                          RuntimeWarning)
-            mode = 'auto'
-
-        if mode == 'min':
-            self.monitor_op = np.less
-            self.best = np.Inf
-        elif mode == 'max':
-            self.monitor_op = np.greater
-            self.best = -np.Inf
-        else:
-            if 'acc' in self.monitor:
-                self.monitor_op = np.greater
-                self.best = -np.Inf
-            else:
-                self.monitor_op = np.less
-                self.best = np.Inf
-
-    def on_epoch_end(self, epoch, logs={}):
-        filepath = self.filepath.format(epoch=epoch, **logs)
-        if self.save_best_only:
-            current = logs.get(self.monitor)
-            if current is None:
-                warnings.warn('Can save best model only with %s available, '
-                              'skipping.' % (self.monitor), RuntimeWarning)
-            else:
-                if self.monitor_op(current, self.best):
-                    if self.verbose > 0:
-                        print('Epoch %05d: %s improved from %0.5f to %0.5f,'
-                              ' saving model to %s'
-                              % (epoch, self.monitor, self.best,
-                                 current, filepath))
-                    self.best = current
-                    self.path_to_best = filepath
-                    save_model(filepath, self.model)
-                else:
-                    if self.verbose > 0:
-                        print('Epoch %05d: %s did not improve' %
-                              (epoch, self.monitor))
-        else:
-            if self.verbose > 0:
-                print('Epoch %05d: saving model to %s' % (epoch, filepath))
-            save_model(filepath, self.model)
 
 
 class ManualEarlyStopping(Callback):

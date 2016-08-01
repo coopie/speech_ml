@@ -18,7 +18,7 @@ class KerasGenerator(object):
         return (x, x)
 
     def __len__(self):
-        """Return how many `next` calls are needed to go thorugh all of the samples."""
+        """Return the size of the data, to the nearest `batch_size`"""
         return len(self.data_source_x) - (len(self.data_source_x) % self.batch_size)
 
 
