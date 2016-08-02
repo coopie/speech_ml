@@ -64,7 +64,7 @@ def train(
 
     if not dry_run:
         model_perf_tracker = ModelCheckpoint(
-            os.path.join(path_to_results, experiment_name + '_{val_acc:.4f}_{acc:.4f}'),
+            os.path.join(path_to_results, experiment_name + '_{val_acc:.4f}_{acc:.4f}.hdf5'),
             monitor='val_loss',
             save_best_only=True
         )
