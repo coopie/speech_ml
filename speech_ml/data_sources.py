@@ -214,14 +214,17 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
     def __init__(self, data_source, ttv, data_name='data', cache_name='ttv_cache'):
         super().__init__(data_source, ttv)
         self.cache = h5py.File(cache_name + '.cache.hdf5', 'a')
-        if data_name in self.cache:
-            # TODO: more checks for compatibility
-            assert len(self.cache[data_name]) == len(self)
-
         self.data_name = data_name
+        if data_name in self.cache:
+            self.__assert_cache_compatibility(self.cache[data_name])
 
-        # isinstantiate the existence_cache now, even if there is no cache created at all
+        # instantiate the existence_cache now, even if there is no cache created at all
         self.__init_existence_cache()
+
+    def __assert_cache_compatibility(self, h5_group):
+        assert len(h5_group) == len(self), 'Cache has a different size to the datasource'
+        exaple_data = self.cache[self.data_name][0]
+        assert exaple_data.shape == h5_group[0].shape, 'Cache for datasource contains differently shaped data to actual datasource'
 
 
     def __init_existence_cache(self):

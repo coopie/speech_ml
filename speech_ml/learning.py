@@ -6,12 +6,14 @@ import warnings
 import numpy as np
 from collections import Iterable
 from tqdm import trange
+import json
 
 from keras.callbacks import Callback, ModelCheckpoint
-from keras.models import model_from_yaml
+from keras.models import model_from_config
 from keras.optimizers import get as get_optimizer
 from keras.utils.layer_utils import layer_from_config
 from keras.layers import Input
+from keras import backend as K
 
 
 from .kbhit import KBHit
@@ -116,10 +118,10 @@ def load_model_old(path_to_model_dir):
     return model
 
 
-def build_model_from_config(config, weights, cutoff_layer_name=None, number_of_layers=None, verbosity=1):
+def build_model_from_config(model_h5, cutoff_layer_name=None, number_of_layers=None, verbosity=1):
     """Build a model from a model snapshot up to `number_of_layers` layers, or `cutoff_layer_name` is reached.
 
-    Note that this currently only works for convolutional architectures
+    TODO: option to pass in input size to the rebuilding of the network.
     """
     def log(level, *message):
         if verbosity >= level:
@@ -128,6 +130,9 @@ def build_model_from_config(config, weights, cutoff_layer_name=None, number_of_l
     if cutoff_layer_name is None and number_of_layers is None:
         raise RuntimeError('You must either name a cutoff layer or the number of layers to cut to')
 
+    config_json_str = model_h5.attrs.get('model_config').decode('UTF-8')
+    config = json.loads(config_json_str)
+
     layers_config = config['config']['layers']
 
     log(1, 'getting first layer')
@@ -135,20 +140,13 @@ def build_model_from_config(config, weights, cutoff_layer_name=None, number_of_l
     input_img = Input(input_layer.input_shape[1:])
     model = input_img
 
-    log(1, 'after init:', model.get_shape())
-
     if number_of_layers is None:
         number_of_layers = float('inf')
 
+    # Build the model until we reach the stopping point
     for i, layer_config in enumerate(layers_config[1:]):
         if i >= number_of_layers:
             break
-
-        # load the weights from the hdf5 file
-        class_name = layer_config['class_name']
-        if class_name.startswith('Convolution'):
-            layer_config['config']['weights'] = [weights[layer_config['name']][w][:] for w in weights[layer_config['name']]]
-
         model = layer_from_config(layer_config)(model)
         if layer_config['name'] == cutoff_layer_name:
             break
@@ -156,6 +154,39 @@ def build_model_from_config(config, weights, cutoff_layer_name=None, number_of_l
 
 
     return model, input_img
+
+
+def get_weights_from_h5_group(model, model_weights, verbose=1):
+    layers = model.layers
+
+    weight_value_tuples = []
+    for layer in layers:
+        name = layer.name
+        if name in model_weights and len(model_weights[name]) > 0:
+            layer_weights = model_weights[name]
+            weight_names = [n.decode('utf8') for n in layer_weights.attrs['weight_names']]
+            weight_values = [layer_weights[weight_name] for weight_name in weight_names]
+            symbolic_weights = layer.trainable_weights + layer.non_trainable_weights
+            if len(weight_values) != len(symbolic_weights):
+                raise Exception('Layer #' + str(k) +
+                                ' (named "' + layer.name +
+                                '" in the current model) was found to '
+                                'correspond to layer ' + name +
+                                ' in the save file. '
+                                'However the new layer ' + layer.name +
+                                ' expects ' + str(len(symbolic_weights)) +
+                                ' weights, but the saved weights have ' +
+                                str(len(weight_values)) +
+                                ' elements.')
+
+            if verbose:
+                print('Setting_weights for layer:', name)
+
+            weight_value_tuples += zip(symbolic_weights, weight_values)
+
+    K.batch_set_value(weight_value_tuples)
+
+
 
 
 def save_model(path, model):
