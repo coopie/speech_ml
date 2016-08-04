@@ -225,6 +225,7 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
         assert len(h5_group) == len(self), 'Cache has a different size to the datasource'
         exaple_data = self.cache[self.data_name][0]
         assert exaple_data.shape == h5_group[0].shape, 'Cache for datasource contains differently shaped data to actual datasource'
+        assert np.all(exaple_data == h5_group[0][:]), 'Cache for datasource contains different data to actual datasource'
 
 
     def __init_existence_cache(self):

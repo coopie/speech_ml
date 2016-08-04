@@ -100,6 +100,8 @@ def train(
         class_weight=class_weight
     )
 
+    return model
+
 
 def load_model_old(path_to_model_dir):
     warnings.warn('`load_model` called. This is a deprected function!')
