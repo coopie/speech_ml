@@ -30,6 +30,18 @@ class DataSource(object):
         pass
 
 
+class AddressAdapter(DataSource):
+    """Used to change the naming scheme bewteen two datasources."""
+
+    def __init__(self, adapt_ident, data_source):
+        self.adapt_ident = adapt_ident
+        self.data_source = data_source
+
+    def _process(self, ident):
+        adapted = self.adapt_ident(ident)
+        return self.data_source[adapted]
+
+
 class FileDataSource(DataSource):
     """Wrapper around file system"""
 
@@ -39,7 +51,7 @@ class FileDataSource(DataSource):
 
     def _process(self, ident):
         path_to_file = os.path.join(self.base_dir, ident + self.suffix)
-        assert os.path.exists(path_to_file)
+        assert os.path.exists(path_to_file), path_to_file + ' does not exist'
         return path_to_file
 
 
