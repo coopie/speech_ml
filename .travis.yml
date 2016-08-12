@@ -21,6 +21,7 @@ install:
 
   # install dependencies here:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy scikit-learn h5py pyyaml nose
+  - source activate test-environment
   - python setup.py install
 
   # install tensorflow
@@ -30,7 +31,6 @@ install:
         pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.10.0rc0-cp35-cp35m-linux_x86_64.whl;
     fi
 
-  - source activate test-environment
 
 script:
   nosetests
