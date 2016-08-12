@@ -33,9 +33,6 @@ class LearningTests(unittest.TestCase):
 
         rebuilt_h, input_img = build_model_from_config(model_h5, cutoff_layer_name='cut_me')
 
-
-        import code
-        code.interact(local=locals())
         layer_shape = dim_to_tuple(rebuilt_h.get_shape())
         self.assertEqual(layer_shape, (None, 1))
 
