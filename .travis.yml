@@ -1,8 +1,10 @@
 language: python
-python:
-  # We don't actually use the Travis Python, but this keeps it organized by setting TRAVIS_PYTHON_VERSION
-  - "3.4"
-  - "3.5"
+matrix:
+    include:
+        - python: 3.5
+          env: KERAS_BACKEND=tensorflow
+        - python: 3.4
+          env: KERAS_BACKEND=tensorflow
 install:
   - sudo apt-get update
 

@@ -17,7 +17,6 @@ class LearningTests(unittest.TestCase):
 
 
     def test_build_model_name(self):
-
         input_img = Input(shape=(1,))
 
         layer_weights = [np.array([[1337]]), np.array([-666])]
@@ -34,8 +33,9 @@ class LearningTests(unittest.TestCase):
 
         rebuilt_h, input_img = build_model_from_config(model_h5, cutoff_layer_name='cut_me')
 
-        # self.assertEqual(rebuilt_model.name, 'cut_me')
 
+        import code
+        code.interact(local=locals())
         layer_shape = dim_to_tuple(rebuilt_h.get_shape())
         self.assertEqual(layer_shape, (None, 1))
 
