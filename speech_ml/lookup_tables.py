@@ -45,7 +45,10 @@ class TTVLookupTable(LookupTable):
 
             subjects = ttv[data_set]
 
+            # Due to the randomization of the hashing function in each python runtime,
+            # this gurantees that `uris_for_set` is the same ordering
             subjectIDs = sorted([k for k in subjects])
+
             for subjectID in subjectIDs:
                 uris = subjects[subjectID]
                 for uri in uris:

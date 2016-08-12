@@ -47,7 +47,7 @@ def train(
         train_gen,
         validation_gen,
         generate_model,
-        experiment_name,
+        experiment_name=None,
         path_to_results='',
         early_stopping=None,
         generate_callbacks=empty_list,
@@ -57,7 +57,7 @@ def train(
         class_weight=None,
 ):
     """
-    TODO: write this.
+    A thin wrapper around `model.fit_generator` with some defaults that reduce bloat in .
     """
 
     def log(message, level):
@@ -65,6 +65,8 @@ def train(
             print(message)
 
     if not dry_run:
+        assert experiment_name is not None, 'When saving models during training, you must set `experiment_name`.'
+
         model_perf_tracker = ModelCheckpoint(
             os.path.join(path_to_results, experiment_name + '_{val_acc:.4f}_{acc:.4f}.hdf5'),
             monitor='val_loss',
@@ -74,7 +76,6 @@ def train(
     manual_stop = ManualEarlyStopping()
 
     example_input = train_gen.data_source_x[0]
-    # TODO: example_output
     batch_size = train_gen.batch_size
 
 
@@ -189,94 +190,6 @@ def get_weights_from_h5_group(model, model_weights, verbose=1):
     K.batch_set_value(weight_value_tuples)
 
 
-
-
-def save_model(path, model):
-    warnings.warn('`save_model` called. This is a deprected function!')
-    metrics = model.metrics_names.copy()
-    metrics.remove('loss')
-    compile_args = {
-        'loss': model.loss,
-        'metrics': metrics,
-        'optimizer': model.optimizer.get_config()
-    }
-    mkdir_p(path)
-    model.save_weights(path + '/weights.hdf5', overwrite=True)
-    save_to_file(path + '/config.yaml', model.to_yaml())
-    save_to_yaml_file(path + '/compile_args.yaml', compile_args)
-
-
-def evaluate_model_on_ttv(model, ttv_gens, sets=['test', 'train', 'validation'], get_metrics=None, path=False, verbosity=0):
-    warnings.warn('`evaluate_model_on_ttv` called. This is a deprected function!')
-    assert len(ttv_gens) == len(sets)
-
-    def log(message, level):
-        if verbosity >= level:
-            print(message)
-
-    def get_perf(set_and_name):
-        # Evaluates a dataset using the metrics that the model uses
-        data_gen, name = set_and_name
-        log('Evaluating ' + name, 1)
-        perf_data = {}
-
-        metrics = model.evaluate_generator(data_gen, len(data_gen))
-        metrics_names = model.metrics_names
-        if get_metrics is not None:
-            log('Getting custom metrics', 1)
-            y_true = None
-            y_pred = None
-            samples_seen = 0
-
-            for i in trange(len(data_gen) // data_gen.batch_size):
-                Xs, Ys = next(data_gen)
-                samples_seen += len(Ys)
-                predictions = model.predict_on_batch(Xs)
-
-                if y_true is None and y_pred is None:
-                    y_true = Ys
-                    y_pred = predictions
-                else:
-                    y_true = np.append(y_true, Ys, axis=0)
-                    y_pred = np.append(y_pred, predictions, axis=0)
-
-
-            extra_metrics, extra_metrics_names = get_metrics(y_true, y_pred)
-            metrics += extra_metrics
-            metrics_names += extra_metrics_names
-
-        for metric_name, metric in zip(metrics_names, metrics):
-            def log_metric(m, m_name):
-                if isinstance(m, dict):
-                    log(str(m_name) + ': ', 1)
-                    for key, value in m.items():
-                        log_metric(value, key)
-                elif isinstance(m, tuple):
-                    log_metric(list(m), m_name)
-                elif np.size(m) <= 64:  # don't log massive metrics (e.g. roc curves)
-                    log((m_name, m), 1)
-                else:
-                    log((m_name, 'TOO BIG TO PRINT'), 1)
-            log_metric(metric, metric_name)
-            perf_data[metric_name] = format_for_hr_yaml(metric)
-
-        return perf_data
-
-    perfs = list(map(
-        get_perf,
-        list(zip(ttv_gens, sets))
-    ))
-    experiment_data = {}
-    experiment_data['model'] = path
-    experiment_data['metrics'] = dict(zip(sets, perfs))
-
-    if path is not None:
-        with open(path + '/stats.yaml', 'w') as f:
-            yaml.dump(experiment_data, f, default_flow_style=False)
-
-    return experiment_data
-
-
 class ManualEarlyStopping(Callback):
     """
     "e" : exit the training completely
@@ -306,17 +219,3 @@ class ManualEarlyStopping(Callback):
 def save_to_file(filepath, string):
     with open(filepath, 'w') as f:
         f.write(string)
-
-
-def format_for_hr_yaml(metric):
-    """Used so that the metrics from model evaluation are in a human readable format."""
-    if isinstance(metric, np.ndarray) and np.size(metric) == 1:
-        return float(metric)
-    elif isinstance(metric, dict):
-        return {label: format_for_hr_yaml(x) for label, x in metric.items()}
-    elif isinstance(metric, np.ndarray):
-        return folded_str(str(metric))
-    elif isinstance(metric, Iterable):
-        return [format_for_hr_yaml(x) for x in metric]
-    else:
-        return folded_str(str(metric))
