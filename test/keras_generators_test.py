@@ -4,7 +4,7 @@ import numpy as np
 import h5py
 import os
 
-from speech_ml.keras_generators import KerasGenerator
+from speech_ml.keras_generators import KerasGenerator, LabeledKerasGenerator
 
 
 TEST_FILE = 'keras_generators.data.hdf5'
@@ -65,12 +65,30 @@ class TestKerasGenerators(unittest.TestCase):
                     )
 
 
+    def labeled_keras_generator_test(self):
+        f = h5py.File(TEST_FILE, 'r')
+        gen = LabeledKerasGenerator(f['data'], f['labels'], batch_size=3)
+
+        X, Y = next(gen)
+        np.testing.assert_equal(
+            Y,
+            np.array([[x] for x in range(1, 4)])
+        )
+        np.testing.assert_equal(
+            X,
+            np.array([np.repeat(x, 3) for x in range(1, 4)])
+        )
+
+
 
     @classmethod
     def setUpClass(cls):
         f = h5py.File(TEST_FILE, 'w')
         data = np.array([np.repeat(x, 3) for x in range(1, 4)])
         f['data'] = data
+
+        labels = np.array([[x] for x in range(1, 4)])
+        f['labels'] = labels
 
 
 

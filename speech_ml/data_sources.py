@@ -10,7 +10,6 @@ import h5py
 import numpy as np
 from numbers import Integral
 
-from .util import yaml_to_dict, yaml_to_dict
 from .lookup_tables import TTVLookupTable
 
 
@@ -31,6 +30,17 @@ class DataSource(object):
         pass
 
 
+class AddressAdapter(DataSource):
+    """Used to change the naming scheme bewteen two datasources."""
+
+    def __init__(self, adapt_ident, data_source):
+        self.adapt_ident = adapt_ident
+        self.data_source = data_source
+
+    def _process(self, ident):
+        adapted = self.adapt_ident(ident)
+        return self.data_source[adapted]
+
 
 class FileDataSource(DataSource):
     """Wrapper around file system"""
@@ -41,7 +51,7 @@ class FileDataSource(DataSource):
 
     def _process(self, ident):
         path_to_file = os.path.join(self.base_dir, ident + self.suffix)
-        assert os.path.exists(path_to_file)
+        assert os.path.exists(path_to_file), path_to_file + ' does not exist'
         return path_to_file
 
 
@@ -108,56 +118,13 @@ class SpectrogramDataSource(DataSource):
         return spectrogram
 
 
-class ExamplesDataSource(DataSource):
-    """Base class for generating training examoples from processed data and metadata. Deprecated, but here if it's needed later."""
-    def __init__(self, data_source, make_target):
+class LambdaDataSource(DataSource):
+    def __init__(self, function, data_source):
+        self.function = function
         self.data_source = data_source
-        self.make_target = make_target
 
-    def __getitem__(self, key):
-
-        x_and_ys = super().__getitem__(key)
-
-        if is_array_like(key):
-            X = []
-            Y = []
-            for x, y in x_and_ys:
-                X.append(x)
-                Y.append(y)
-            return X, Y
-        else:
-            return x_and_ys
-
-
-class TTVExamplesDataSource(ExamplesDataSource):
-    """Uses ttv and subject information to build a lookuptable.
-
-    Returns the examples requested as two lists: X, Y. X is a list of examples, Y is the corresponding list of targets
-    """
-    def __init__(self, data_source, make_target, ttv, subject_info_dir):
-        super(TTVExamplesDataSource, self).__init__(data_source, make_target)
-        self.ttv = ttv
-        self.subject_info_data_source = FileDataSource(subject_info_dir, suffix='.yaml')
-
-        all_users = merge_dicts(ttv['test'], ttv['train'], ttv['validation'])
-
-        # invert the map
-        uri_to_subjectID = {}
-        for userID in all_users:
-            resources = all_users[userID]
-            for resourceID in resources:
-                uri_to_subjectID[resourceID] = userID
-
-        self.uri_to_subjectID = uri_to_subjectID
-
-
-    def _process(self, key):
-        X = self.data_source[key]
-
-        subjectID = self.uri_to_subjectID[key]
-        Y = self.make_target(X, key, subjectID, self.subject_info_data_source)
-        return X, Y
-
+    def _process(self, ident):
+        return self.function(self.data_source[ident])
 
 
 class ArrayLikeDataSource(DataSource):
@@ -218,67 +185,101 @@ class SubArrayLikeDataSource(ArrayLikeDataSource):
             return self.parent[key]
         elif type(key) == slice:
             s = key
-            if s.stop is not None:
-                stop = min(len(self), s.stop)
-                s = slice(s.start, stop, s.step)
-            return np.array([self.parent[i + self.lower] for i in slice_to_range(s, len(self))])
+            start, stop = s.start, s.stop
+            if start is None:
+                start = 0
+            if stop is None:
+                stop = len(self)
+            s = slice(
+                self.__resolve_slice_for_array_boundaries(start),
+                self.__resolve_slice_for_array_boundaries(stop),
+                s.step
+            )
+            return self.parent[s]
         if is_array_like(key):
             keyarr = key
             return np.array([self.parent[i + self.lower] for i in keyarr if i + self.lower < self.upper])
         else:
             raise RuntimeError('key: {} is not compatible with this datasource'.format(str(key)))
 
+    def __resolve_slice_for_array_boundaries(self, edge_index):
+        if edge_index >= 0:
+            edge_index = min(self.upper, self.lower + edge_index)
+        else:
+            edge_index = max(self.lower, self.upper - edge_index)
+        return edge_index
+
+
     def __len__(self):
         return self.upper - self.lower
 
 
 class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
-    CACHE_MAGIC = 322
+    CACHE_BITARRAY_SUFFIX = '_bitarray'
     """
     Cache computed examples after they are called.
 
     If a cache file already exists with the same file name, it will try to use that as a cache, and will break if it's
     not compatible.
     """
-    def __init__(self, data_source, ttv, data_name='data', cache_name='ttv_cache'):
-        self.cache = h5py.File(cache_name + '.cache.hdf5', 'a')
-        if data_name in self.cache:
-            assert len(self.cache[data_name]) == len(self)
 
+    def __init__(self, data_source, ttv, data_name='data', cache_name='ttv_cache'):
         super().__init__(data_source, ttv)
+        self.cache = h5py.File(cache_name + '.cache.hdf5', 'a')
         self.data_name = data_name
+        if data_name in self.cache:
+            self.__assert_cache_compatibility(self.cache[data_name])
+
+        # instantiate the existence_cache now, even if there is no cache created at all
         self.__init_existence_cache()
+
+    def __assert_cache_compatibility(self, h5_group):
+        assert len(h5_group) == len(self), 'Cache has a different size to the datasource'
+        exaple_data = self.cache[self.data_name][0]
+        assert exaple_data.shape == h5_group[0].shape, 'Cache for datasource contains differently shaped data to actual datasource'
+        assert np.all(exaple_data == h5_group[0][:]), 'Cache for datasource contains different data to actual datasource'
 
 
     def __init_existence_cache(self):
-        if len(self.cache) == 0:
+        if self.data_name not in self.cache or len(self.cache[self.data_name]) == 0:
             self.existence_cache = np.zeros(len(self), dtype=bool)
         else:
-            existence_cache = np.zeros(len(self), dtype=bool)
-            for i, entry in enumerate(self.cache[self.data_name]):
-                existence_cache[i] = np.all(entry != self.CACHE_MAGIC)
-
-            self.existence_cache = existence_cache
+            self.existence_cache = self.cache[self.data_name + self.CACHE_BITARRAY_SUFFIX][:]
 
 
     def __get_from_data_source(self, key):
-        data = np.array(super().__getitem__(key))
+        data = super().__getitem__(key)
+        if is_array_like(data):
+            data = np.array(data)
 
-        if len(self.cache) == 0:
+        if self.data_name not in self.cache or len(self.cache[self.data_name]) == 0:
             if is_int_like(key):
                 example_data = data
             elif is_array_like(key) or type(key) == slice:
                 example_data = data[0]
-            number_of_samples = len(self)
-            self.cache.create_dataset(
-                self.data_name,
-                shape=(number_of_samples,) + example_data.shape,
-                fillvalue=self.CACHE_MAGIC
-            )
+            self.__init_cache(example_data)
 
         self.cache[self.data_name][key] = data
+
         self.existence_cache[key] = True
+        self.cache[self.data_name + self.CACHE_BITARRAY_SUFFIX][key] = True
+
         return data
+
+
+    def __init_cache(self, example_input):
+        number_of_samples = len(self)
+        self.cache.create_dataset(
+            self.data_name,
+            shape=(number_of_samples,) + example_input.shape,
+            dtype=example_input.dtype
+        )
+        # currently not a bit array techincally
+        self.cache.create_dataset(
+            self.data_name + self.CACHE_BITARRAY_SUFFIX,
+            data=self.existence_cache
+        )
+
 
 
     def __getitem__(self, key):
@@ -292,10 +293,14 @@ class CachedTTVArrayLikeDataSource(TTVArrayLikeDataSource):
             elif np.all(np.logical_not(in_cache)):
                 return self.__get_from_data_source(slice(start, stop, step))
 
-            key = slice_to_range(s, len(self))
+            key = slice_to_range(key, len(self))
 
         if is_int_like(key):
-            key = np.array([key])
+            index = key
+            if self.existence_cache[index]:
+                return self.cache[self.data_name][index]
+            else:
+                return self.__get_from_data_source(index)
 
         if is_array_like(key):
             data = []
@@ -331,5 +336,5 @@ def slice_to_range(s, max_value):
 def merge_dicts(*dicts):
     merged = {}
     for d in dicts:
-        merged = {**merged, **d}
+        merged.update(d)
     return merged

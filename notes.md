@@ -27,24 +27,6 @@ TODO:
 * 2 methods - spectrograms and raw waveform.
 
 
-## DATA
-
-[ID, SET, DATA, MISC...]
-
-##  File Naming
-
-files from new corpora will be changed to new names:
-
-```
-<subjectid>_<emotion>_<action>_<repitionid>
-
-```
-where:
-* `subjectid` can be any string, so long as it is unique from ALL other files (incl. ones from other corpora).
-* `emotion` is any from `{neutral, calm, happy, sad, angry, fearful, disgust, surprised}`
-* `action` is a string representing what the subject is saying
-* `repitionid` (optional) should be a number signifying if the subject has more than one recording of a specific emotion.
-
 
 ## Papers and misc. Information
 * http://cs231n.stanford.edu/reports/Cs_231n_paper.pdf
