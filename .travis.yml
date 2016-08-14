@@ -1,7 +1,12 @@
+sudo: required
+dist: trusty
 language: python
-python:
-  # We don't actually use the Travis Python, but this keeps it organized by setting TRAVIS_PYTHON_VERSION
-  - "3.5"
+matrix:
+    include:
+        - python: 3.5
+          env: KERAS_BACKEND=tensorflow
+        - python: 3.4
+          env: KERAS_BACKEND=tensorflow
 install:
   - sudo apt-get update
 
@@ -18,6 +23,14 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy scikit-learn h5py pyyaml nose
   - source activate test-environment
   - python setup.py install
+
+  # install tensorflow
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "3.4" ]]; then
+        pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.10.0rc0-cp34-cp34m-linux_x86_64.whl;
+    elif [[ "$TRAVIS_PYTHON_VERSION" == "3.5" ]]; then
+        pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.10.0rc0-cp35-cp35m-linux_x86_64.whl;
+    fi
+
 
 script:
   nosetests

@@ -2,6 +2,7 @@
 """Uttilities for pretty printing to yaml."""
 import yaml
 from yaml.representer import SafeRepresenter
+import numpy as np
 
 
 class folded_str(str):
