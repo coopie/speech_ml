@@ -9,7 +9,7 @@ protobuf==3.0.0b2
 pyparsing==2.1.4
 python-dateutil==2.5.3
 pytz==2016.4
-PyYAML==3.11
+PyYAML==5.1
 scikit-learn==0.17.1
 scipy==0.17.1
 six==1.10.0
