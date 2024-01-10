@@ -1,0 +1,24 @@
+# suggester tool version: 0.0.1+c56de9f4-dirty
+
+dev:
+  commands:
+  - command: python -m venv --copies ~/.venv && . ~/.venv/bin/activate && pip install
+      -r requirements.txt
+    directory: speech_ml
+    name: install cmd
+  name: ""
+  packages:
+  - nixpkgs.gcc
+  - nixpkgs.python38
+  repos:
+  - https://github.com/coopie/speech_ml
+compute:
+  compute_name: default
+  os_family: UBUNTU_22_04
+  region: us-west-1
+  resources:
+    cpus: 4+
+    disk: 50
+network:
+  category: vm-public
+  network_name: default
